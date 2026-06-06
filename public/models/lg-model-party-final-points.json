@@ -1,0 +1,39 @@
+{
+  "pointCount": 429025,
+  "bounds": {
+    "min": [
+      -3.3149631023406982,
+      -3.663525342941284,
+      4.888266086578369
+    ],
+    "max": [
+      2.9425384998321533,
+      3.706331729888916,
+      11.829333305358887
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_party.glb",
+  "filter": {
+    "type": "xz-ellipse",
+    "centerX": 0.05,
+    "centerZ": 5.99,
+    "radiusX": 3.65,
+    "radiusZ": 6.18,
+    "feather": 0.94,
+    "sourcePointCount": 500000
+  },
+  "removeBox": {
+    "min": [
+      -4,
+      -4,
+      -0.2
+    ],
+    "max": [
+      4,
+      4,
+      0.45
+    ],
+    "removedCount": 26224,
+    "sourcePointCount": 455249
+  }
+}

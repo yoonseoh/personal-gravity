@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Gravity Detail</title>
+    <style>
+      :root {
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: #fff;
+        background: #000;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .personal-gravity-detail {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: #000;
+      }
+
+      #point-cloud-stage {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 46vw;
+        height: 100vh;
+        z-index: 1;
+        background: transparent;
+      }
+
+      .gravity-frame {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .title-copy {
+        position: absolute;
+        top: 13.4vh;
+        left: 50%;
+        width: min(620px, 76vw);
+        transform: translateX(-50%);
+        text-align: center;
+      }
+
+      .title-copy h1 {
+        margin: 0;
+        font-size: clamp(38px, 3.7vw, 72px);
+        font-weight: 400;
+        line-height: 1.06;
+        letter-spacing: 0;
+      }
+
+      .title-copy p {
+        margin: clamp(16px, 1.6vw, 28px) 0 0;
+        color: rgba(255, 255, 255, 0.88);
+        font-size: clamp(18px, 1.55vw, 32px);
+        font-weight: 400;
+        line-height: 1.35;
+        letter-spacing: 0;
+      }
+
+      .description {
+        position: absolute;
+        top: 29.5vh;
+        left: 50.6vw;
+        width: min(780px, 43vw);
+      }
+
+      .description h2 {
+        margin: 0 0 clamp(26px, 2.2vw, 44px);
+        color: rgba(255, 255, 255, 0.95);
+        font-size: clamp(20px, 1.8vw, 36px);
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .description p {
+        margin: 0 0 18px;
+        color: rgba(255, 255, 255, 0.88);
+        font-size: clamp(14px, 1.05vw, 20px);
+        font-weight: 400;
+        line-height: 1.75;
+        letter-spacing: 0;
+        word-break: keep-all;
+      }
+
+      .arrow {
+        position: absolute;
+        top: 49%;
+        transform: translateY(-50%);
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border: 0;
+        color: #fff;
+        background: transparent;
+        font-size: clamp(38px, 3vw, 58px);
+        line-height: 1;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .arrow--left {
+        left: 2.9vw;
+      }
+
+      .arrow--right {
+        right: 2.9vw;
+      }
+
+      .bottom-guide {
+        position: absolute;
+        right: 0;
+        bottom: 8.2vh;
+        left: 0;
+        display: grid;
+        grid-template-columns: 1fr 1.65fr;
+        align-items: end;
+        gap: clamp(32px, 5vw, 96px);
+        padding: 0 10.5vw 0 22.4vw;
+      }
+
+      .bottom-guide p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: clamp(13px, 1vw, 20px);
+        line-height: 1.4;
+        letter-spacing: 0;
+      }
+
+      .product-links {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: clamp(40px, 7vw, 144px);
+        color: rgba(255, 255, 255, 0.82);
+        font-size: clamp(13px, 0.95vw, 19px);
+        line-height: 1.4;
+        text-align: center;
+        letter-spacing: 0;
+      }
+
+      .gravity-frame::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.34);
+        content: "";
+      }
+
+      @media (max-width: 900px) {
+        #point-cloud-stage {
+          width: 100vw;
+          opacity: 0.42;
+        }
+
+        .title-copy {
+          top: 8vh;
+        }
+
+        .description {
+          top: 22vh;
+          left: 8vw;
+          width: 84vw;
+        }
+
+        .bottom-guide {
+          grid-template-columns: 1fr;
+          padding: 0 8vw;
+        }
+
+        .product-links {
+          gap: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="personal-gravity-detail">
+      <!-- Mount the Three.js / R3F point-cloud viewer here. -->
+      <div id="point-cloud-stage" aria-label="3D point cloud room"></div>
+
+      <section class="gravity-frame" aria-label="Personal Gravity">
+        <div class="title-copy">
+          <h1>Personal Gravity</h1>
+          <p>행성을 눌러 구경해보세요.</p>
+        </div>
+
+        <article class="description">
+          <h2>육아하는 부부</h2>
+          <p>
+            아기의 건강과 위생을 최우선으로 생각하며, 육아 퇴근 후의 짧은 휴식을 소중히 여기는 부부입니다.
+          </p>
+          <p>
+            아기가 바닥에서 노는 시간이 많으므로 하단까지 공기를 정밀하게 정화하는 LG 퓨리케어 AI
+            오브제컬렉션 360공기 청정기를 사용합니다.
+          </p>
+        </article>
+
+        <button class="arrow arrow--left" type="button" aria-label="Previous">←</button>
+        <button class="arrow arrow--right" type="button" aria-label="Next">→</button>
+
+        <div class="bottom-guide">
+          <p>돌려서 구경해보세요.</p>
+          <div class="product-links" aria-label="Product list">
+            <span>제품명1</span>
+            <span>제품명1</span>
+            <span>제품명1</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

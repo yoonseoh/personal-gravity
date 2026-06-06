@@ -1,0 +1,30 @@
+{
+  "pointCount": 390646,
+  "bounds": {
+    "min": [
+      -3.6651928424835205,
+      -3.676015853881836,
+      4.885863780975342
+    ],
+    "max": [
+      3.8895466327667236,
+      2.8515121936798096,
+      12.97668743133545
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_PLANT2.glb",
+  "removeBox": {
+    "min": [
+      20,
+      -5,
+      -25
+    ],
+    "max": [
+      45,
+      5,
+      15
+    ],
+    "removedCount": 109354,
+    "sourcePointCount": 500000
+  }
+}

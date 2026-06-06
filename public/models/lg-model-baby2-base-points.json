@@ -1,0 +1,17 @@
+{
+  "pointCount": 380000,
+  "bounds": {
+    "min": [
+      -3.4679978225570096,
+      -3.6795620918273926,
+      4.882174015045166
+    ],
+    "max": [
+      3.891121755398956,
+      2.8369895272447394,
+      12.241295786191046
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_BABY2.glb",
+  "sceneBoundsSource": "public/models/lg-model-baby2-points.json"
+}
