@@ -12,6 +12,7 @@ type PointCloudModelProps = {
   settings: ViewerSettings;
   maxDensity: number;
   displayPosition?: [number, number, number];
+  introPaused?: boolean;
 };
 
 type SampledCloud = {
@@ -392,7 +393,8 @@ function GeneratedPointCloudModel({
   modelUrl,
   settings,
   maxDensity,
-  displayPosition = [0.72, -0.08, 0]
+  displayPosition = [0.72, -0.08, 0],
+  introPaused = false
 }: Omit<PointCloudModelProps, "pointDataUrl">) {
   const gltf = useLoader(GLTFLoader, modelUrl);
   const cloud = useMemo(() => makePointCloud(gltf, maxDensity), [gltf, maxDensity]);
@@ -402,6 +404,7 @@ function GeneratedPointCloudModel({
       cloud={cloud}
       settings={settings}
       displayPosition={displayPosition}
+      introPaused={introPaused}
     />
   );
 }
@@ -409,11 +412,13 @@ function GeneratedPointCloudModel({
 function BakedPointCloudModel({
   pointDataUrl,
   settings,
-  displayPosition
+  displayPosition,
+  introPaused = false
 }: {
   pointDataUrl: string;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
+  introPaused?: boolean;
 }) {
   const [cloud, setCloud] = useState<SampledCloud | null>(null);
 
@@ -451,17 +456,19 @@ function BakedPointCloudModel({
 
   if (!cloud) return null;
 
-  return <PointCloudPoints cloud={cloud} settings={settings} displayPosition={displayPosition} />;
+  return <PointCloudPoints cloud={cloud} settings={settings} displayPosition={displayPosition} introPaused={introPaused} />;
 }
 
 function PointCloudPoints({
   cloud,
   settings,
-  displayPosition
+  displayPosition,
+  introPaused = false
 }: {
   cloud: SampledCloud;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
+  introPaused?: boolean;
 }) {
   const rotationRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.PointsMaterial>(null);
@@ -481,6 +488,8 @@ function PointCloudPoints({
   }, [cloud.geometry]);
 
   useFrame((_, delta) => {
+    if (introPaused) return;
+
     introTimeRef.current = Math.min(INTRO_DURATION, introTimeRef.current + delta);
     const introProgress = easeOutCubic(introTimeRef.current / INTRO_DURATION);
     const positionAttribute = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
@@ -550,10 +559,11 @@ export function PointCloudModel({
   pointDataUrl,
   settings,
   maxDensity,
-  displayPosition = [0.72, -0.08, 0]
+  displayPosition = [0.72, -0.08, 0],
+  introPaused = false
 }: PointCloudModelProps) {
   if (pointDataUrl) {
-    return <BakedPointCloudModel pointDataUrl={pointDataUrl} settings={settings} displayPosition={displayPosition} />;
+    return <BakedPointCloudModel pointDataUrl={pointDataUrl} settings={settings} displayPosition={displayPosition} introPaused={introPaused} />;
   }
 
   return (
@@ -562,6 +572,7 @@ export function PointCloudModel({
       settings={settings}
       maxDensity={maxDensity}
       displayPosition={displayPosition}
+      introPaused={introPaused}
     />
   );
 }

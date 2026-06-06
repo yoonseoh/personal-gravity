@@ -18,6 +18,7 @@ export type ViewerSettings = {
 };
 
 const MAX_DENSITY = 500_000;
+const ENTRY_LOADING_DURATION_MS = 3300;
 const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
 
 type PlanetKey = "baby" | "plant" | "party" | "dress" | "bath" | "cats" | "20s";
@@ -26,6 +27,7 @@ type PlanetContent = {
   id: PlanetKey;
   modelUrl: string;
   pointDataUrl?: string;
+  entryLabel: string;
   title: string;
   description: string[];
   products: string[];
@@ -36,6 +38,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "baby",
     modelUrl: "models/lg-model-baby2.glb",
     pointDataUrl: "models/lg-model-baby2-points",
+    entryLabel: "육아 부부",
     title: "육아 부부의 행성",
     description: [
       "아기의 생활 리듬과 부모의 휴식에 맞춰 공기, 청결, 조명이 부드럽게 반응하는 공간.",
@@ -47,6 +50,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "plant",
     modelUrl: "models/lg-model-plant2.glb",
     pointDataUrl: "models/lg-model-plant2-final-points",
+    entryLabel: "액티브 시니어 부부",
     title: "액티브 시니어 부부의 행성",
     description: [
       "부부의 하루 리듬과 식물의 성장 주기에 맞춰 건강, 청결, 휴식이 자연스럽게 유지되는 공간.",
@@ -58,6 +62,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "party",
     modelUrl: "models/lg-model-party.glb",
     pointDataUrl: "models/lg-model-party-final-points",
+    entryLabel: "홈파티 부부",
     title: "홈파티 부부의 행성",
     description: [
       "요리하는 리듬과 손님을 맞이하는 분위기에 맞춰 색, 온도, 보관, 조리가 하나의 경험으로 연결되는 공간.",
@@ -69,6 +74,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "dress",
     modelUrl: "models/lg-model-dressroom2.glb",
     pointDataUrl: "models/lg-model-dressroom2-points",
+    entryLabel: "트렌드세터",
     title: "트렌드세터의 행성",
     description: [
       "오늘의 스타일과 기록하고 싶은 순간에 맞춰 의류 관리와 무드가 나를 중심으로 완성되는 공간.",
@@ -80,6 +86,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "bath",
     modelUrl: "models/lg-model-bathroom2.glb",
     pointDataUrl: "models/lg-model-bathroom2-points",
+    entryLabel: "홈 스파 매니아",
     title: "홈 스파 매니아의 행성",
     description: [
       "나의 회복 루틴과 체온 변화에 맞춰 온도, 습도, 조명이 섬세하게 조율되는 공간.",
@@ -91,6 +98,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "cats",
     modelUrl: "models/lg-model-cat2.glb",
     pointDataUrl: "models/lg-model-cat2-points",
+    entryLabel: "반려묘 집사",
     title: "반려묘 집사의 행성",
     description: [
       "고양이의 움직임과 집사의 생활 패턴을 따라 공기와 청결이 유연하게 관리되는 공간.",
@@ -102,6 +110,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "20s",
     modelUrl: "models/lg-model-20s2.glb",
     pointDataUrl: "models/lg-model-20s2-points",
+    entryLabel: "영화·게임 러버",
     title: "영화·게임 러버의 행성",
     description: [
       "퇴근 후의 피로와 콘텐츠 몰입도에 맞춰 조도, 사운드, 화면이 하나의 감각으로 정렬되는 공간.",
@@ -198,11 +207,13 @@ function Loader() {
 function Scene({
   settings,
   modelUrl,
-  pointDataUrl
+  pointDataUrl,
+  introPaused = false
 }: {
   settings: ViewerSettings;
   modelUrl: string;
   pointDataUrl?: string;
+  introPaused?: boolean;
 }) {
   return (
     <Canvas
@@ -222,6 +233,7 @@ function Scene({
           settings={settings}
           maxDensity={MAX_DENSITY}
           displayPosition={MODEL_DISPLAY_POSITION}
+          introPaused={introPaused}
         />
       </Suspense>
 
@@ -280,7 +292,7 @@ function HomePage({
 
     onEnterStart(planet);
     setIsEntering(true);
-    window.setTimeout(() => onEnterComplete(planet), 1350);
+    window.setTimeout(() => onEnterComplete(planet), ENTRY_LOADING_DURATION_MS);
   };
 
   useEffect(() => {
@@ -640,6 +652,16 @@ function ParticleControls({ settings, onChange }: DetailControlProps) {
   );
 }
 
+function EntryLoadingOverlay({ planet }: { planet: PlanetContent }) {
+  return (
+    <div className="entry-loading" aria-live="polite" aria-label={`${planet.entryLabel}의 Personal Gravity로 진입하는 중`}>
+      <p className="entry-loading__eyebrow">PERSONAL GRAVITY</p>
+      <strong>{planet.entryLabel}의 Personal Gravity로 진입하는 중...</strong>
+      <p>입자의 흐름이 행성의 리듬에 맞춰 정렬되고 있습니다.</p>
+    </div>
+  );
+}
+
 function DetailPage({
   settings,
   planet,
@@ -673,7 +695,7 @@ function DetailPage({
       className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}`}
       style={{ "--stage-scale": stageScale } as React.CSSProperties}
     >
-      <Scene settings={settingsSnapshot} modelUrl={planet.modelUrl} pointDataUrl={planet.pointDataUrl} />
+      <Scene settings={settingsSnapshot} modelUrl={planet.modelUrl} pointDataUrl={planet.pointDataUrl} introPaused={isTransitioning} />
       {!isTransitioning && (
         <>
           <GravityInterface
@@ -812,6 +834,7 @@ function App() {
           onSettingsChange={(key, value) => setSettings((current) => ({ ...current, [key]: value }))}
         />
       )}
+      {isTransitioning && <EntryLoadingOverlay planet={currentPlanet} />}
       {view === "home" && (
         <HomePage
           onEnterStart={(planet) => {
