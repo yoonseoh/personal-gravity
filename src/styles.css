@@ -133,11 +133,20 @@ main {
   letter-spacing: 0;
 }
 
-.pg-intro p {
-  margin: clamp(8px, 1.8vh, 34px) 0 0;
+.pg-subtitle {
+  margin: clamp(4px, 0.75vh, 12px) 0 0;
   color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(14px, 1.25vw, 48px);
+  font-size: clamp(16px, 1.3vw, 34px);
+  font-weight: 500;
   line-height: 1.45;
+}
+
+.pg-guide {
+  margin: clamp(6px, 0.9vh, 14px) 0 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: clamp(11px, 0.7vw, 16px);
+  font-weight: 500;
+  line-height: 1.55;
 }
 
 .pg-system {

@@ -267,15 +267,21 @@ function HomePage({
 }) {
   const systemRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLElement>(null);
+  const suppressClickRef = useRef(false);
   const [isEntering, setIsEntering] = useState(false);
 
   const startEnter = (event?: React.MouseEvent<HTMLElement>) => {
     if (isEntering) return;
+    if (suppressClickRef.current) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      return;
+    }
 
     const scene = sceneRef.current;
     const target = event?.target instanceof Element ? event.target.closest<HTMLElement>(".pg-planet") : null;
-    const fallback = systemRef.current?.querySelector<HTMLElement>(".pg-planet.is-active");
-    const source = target ?? fallback;
+    if (!target) return;
+    const source = target;
     const planetCandidate = source?.dataset.planet;
     if (target && !isPlanetKey(planetCandidate)) return;
     const planet = isPlanetKey(planetCandidate) ? planetCandidate : "baby";
@@ -342,7 +348,7 @@ function HomePage({
     }));
     const rotation = { x: -58, y: 14, z: -10 };
     let zoom = 1;
-    let drag: null | { id: number; x: number; y: number; rotationX: number; rotationY: number; rotationZ: number } = null;
+    let drag: null | { id: number; x: number; y: number; moved: boolean; rotationX: number; rotationY: number; rotationZ: number } = null;
     let frame = 0;
     let lastFrame = 0;
 
@@ -422,6 +428,7 @@ function HomePage({
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        moved: false,
         rotationX: rotation.x,
         rotationY: rotation.y,
         rotationZ: rotation.z
@@ -431,11 +438,18 @@ function HomePage({
       if (!drag || drag.id !== event.pointerId) return;
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 6) drag.moved = true;
       rotation.y = drag.rotationY + dx * 0.34;
       rotation.x = Math.max(-138, Math.min(138, drag.rotationX - dy * 0.34));
       rotation.z = drag.rotationZ + dx * 0.045 + dy * 0.025;
     };
     const stopDrag = () => {
+      if (drag?.moved) {
+        suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 120);
+      }
       drag = null;
       system.classList.remove("is-dragging");
     };
@@ -467,7 +481,8 @@ function HomePage({
     <section ref={sceneRef} className={`pg-scene${isEntering ? " is-entering" : ""}`} aria-label="행성 선택 화면">
       <header className="pg-intro">
         <h1>Personal Gravity</h1>
-        <p>움직이고 확대해보면서 궤도를 구경해보세요.</p>
+        <p className="pg-subtitle">당신이 중심이 되는 세상</p>
+        <p className="pg-guide">손끝으로 궤도를 움직이며 행성을 발견해보세요.</p>
       </header>
 
       <div className="pg-system" ref={systemRef} onClick={startEnter}>
