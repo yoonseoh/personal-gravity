@@ -23,6 +23,11 @@ const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
 
 type PlanetKey = "baby" | "plant" | "party" | "dress" | "bath" | "cats" | "20s";
 
+type ProductContent = {
+  name: string;
+  image: string;
+};
+
 type PlanetContent = {
   id: PlanetKey;
   modelUrl: string;
@@ -30,7 +35,7 @@ type PlanetContent = {
   entryLabel: string;
   title: string;
   description: string[];
-  products: string[];
+  products: ProductContent[];
 };
 
 const PLANETS: Record<PlanetKey, PlanetContent> = {
@@ -44,7 +49,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "아기의 생활 리듬과 부모의 휴식에 맞춰 공기, 청결, 조명이 부드럽게 반응하는 공간.",
       "하루 종일 바닥에서 머무는 아이를 위해, 집은 더 낮고 섬세하게 케어합니다."
     ],
-    products: ["PuriCare 360˚ M5", "CordZero A9", "AeroFurniture"]
+    products: [
+      { name: "ThinQ ON AI", image: "images/products/baby/1.png" },
+      { name: "코드제로 AI 오브제컬렉션 A9", image: "images/products/baby/2.png" },
+      { name: "퓨리케어 AI 오브제컬렉션 360˚ 공기청정기 M5", image: "images/products/baby/3.png" }
+    ]
   },
   plant: {
     id: "plant",
@@ -56,7 +65,12 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "부부의 하루 리듬과 식물의 성장 주기에 맞춰 건강, 청결, 휴식이 자연스럽게 유지되는 공간.",
       "가사는 덜어내고, 햇살과 식물, 회복의 시간이 더 오래 머무르게 합니다."
     ],
-    products: ["Whisen Tower", "tiiun", "HealingMe"]
+    products: [
+      { name: "휘센 AI 오브제컬렉션 타워 I 에어컨 1", image: "images/products/plant/1.png" },
+      { name: "코드제로 AI 오브제컬렉션 로보킹 올인원", image: "images/products/plant/2.png" },
+      { name: "틔운 미니", image: "images/products/plant/3.png" },
+      { name: "힐링미 안마의자 (MX9)", image: "images/products/plant/4.png" }
+    ]
   },
   party: {
     id: "party",
@@ -68,7 +82,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "요리하는 리듬과 손님을 맞이하는 분위기에 맞춰 색, 온도, 보관, 조리가 하나의 경험으로 연결되는 공간.",
       "주방은 단순한 조리 공간을 넘어, 취향과 환대가 드러나는 무대가 됩니다."
     ],
-    products: ["MoodUP Refrigerator", "Lightwave Oven", "Wine Cellar"]
+    products: [
+      { name: "디오스 AI 오브제컬렉션 김치톡톡 Fit & Max", image: "images/products/party/1.png" },
+      { name: "디오스 오브제컬렉션 광파오븐", image: "images/products/party/2.png" },
+      { name: "디오스 오브제컬렉션 와인셀러", image: "images/products/party/3.png" }
+    ]
   },
   dress: {
     id: "dress",
@@ -80,7 +98,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "오늘의 스타일과 기록하고 싶은 순간에 맞춰 의류 관리와 무드가 나를 중심으로 완성되는 공간.",
       "옷을 입고 관리하는 과정까지, 매일의 스타일이 하나의 콘텐츠가 됩니다."
     ],
-    products: ["Styler Objet Collection", "Styler ShoeCare"]
+    products: [
+      { name: "ThinQ ON AI", image: "images/products/dress/1.png" },
+      { name: "스타일러 오브제컬렉션 슈케어", image: "images/products/dress/2.png" },
+      { name: "스타일러 오브제컬렉션", image: "images/products/dress/3.png" }
+    ]
   },
   bath: {
     id: "bath",
@@ -92,7 +114,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "나의 회복 루틴과 체온 변화에 맞춰 온도, 습도, 조명이 섬세하게 조율되는 공간.",
       "입욕 전후의 작은 변화까지 감지해, 욕실을 가장 사적인 휴식의 장면으로 만듭니다."
     ],
-    products: ["Bath Air System", "Smart Mirror", "Styler"]
+    products: [
+      { name: "ThinQ ON AI", image: "images/products/bath/1.png" },
+      { name: "퓨리케어 바스에어시스템", image: "images/products/bath/2.png" },
+      { name: "휘센 오브제컬렉션 제습기", image: "images/products/bath/3.png" }
+    ]
   },
   cats: {
     id: "cats",
@@ -104,7 +130,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "고양이의 움직임과 집사의 생활 패턴을 따라 공기와 청결이 유연하게 관리되는 공간.",
       "보이지 않는 털과 먼지까지 따라가며, 사람과 반려동물의 일상을 함께 돌봅니다."
     ],
-    products: ["AeroCatTower", "CordZero R9"]
+    products: [
+      { name: "AI 오브제컬렉션 에어로캣타워", image: "images/products/cats/1.png" },
+      { name: "ThinQ ON AI", image: "images/products/cats/2.png" },
+      { name: "코드제로 AI 오브제컬렉션 로보킹 올인원", image: "images/products/cats/3.png" }
+    ]
   },
   "20s": {
     id: "20s",
@@ -116,7 +146,12 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "퇴근 후의 피로와 콘텐츠 몰입도에 맞춰 조도, 사운드, 화면이 하나의 감각으로 정렬되는 공간.",
       "콘텐츠가 시작되는 순간, 거실은 나만의 몰입 세계로 전환됩니다."
     ],
-    products: ["OLED TV", "XBOOM 360", "Smart Lighting Switch"]
+    products: [
+      { name: "ThinQ ON AI", image: "images/products/20s/1.png" },
+      { name: "스마트 조명 스위치 3구", image: "images/products/20s/2.png" },
+      { name: "엑스붐 360", image: "images/products/20s/3.png" },
+      { name: "올레드 evo AI", image: "images/products/20s/4.png" }
+    ]
   }
 };
 
@@ -202,6 +237,21 @@ function Loader() {
       <strong>{Math.round(progress)}%</strong>
     </div>
   );
+}
+
+function PersonalGravityBrand() {
+  return (
+    <>
+      <svg className="pg-symbol" viewBox="0 0 144 155" aria-hidden="true">
+        <path d="M62 0V72H144M0 84H81V155M4 18L58 72M85 84L140 136" />
+      </svg>
+      <h1>PERSONAL GRAVITY</h1>
+    </>
+  );
+}
+
+function preventTrailingOrphan(text: string) {
+  return text.replace(/\s+(\S+)$/, "\u00a0$1");
 }
 
 function Scene({
@@ -381,9 +431,14 @@ function HomePage({
       const x = 50 + rotated.x * perspective;
       const y = 50 + rotated.y * perspective;
       const depthNormal = Math.max(0, Math.min(1, (rotated.z + orbit.rz) / (orbit.rz * 2)));
-      const scale = mover.isOrbit
+      const depthScale = mover.isOrbit
         ? 0.72 + depthNormal * 0.58
         : (mover.isPlanet ? 0.72 : 0.55) + depthNormal * (mover.isPlanet ? 0.5 : 0.36);
+      const orbitScale = [0.8, 0.94, 1.08, 1.24][mover.orbit - 1] || 1;
+      const minimumTouchScale = mover.isPlanet ? 68 / mover.el.offsetWidth : 0;
+      const scale = mover.isPlanet
+        ? Math.max(minimumTouchScale, depthScale * orbitScale)
+        : depthScale;
       const lightX = 34 - Math.sin((rotation.y * Math.PI) / 180) * 18;
       const lightY = 28 + Math.sin((rotation.x * Math.PI) / 180) * 22;
 
@@ -480,7 +535,7 @@ function HomePage({
   return (
     <section ref={sceneRef} className={`pg-scene${isEntering ? " is-entering" : ""}`} aria-label="행성 선택 화면">
       <header className="pg-intro">
-        <h1>Personal Gravity</h1>
+        <PersonalGravityBrand />
         <p className="pg-subtitle">당신이 중심이 되는 세상</p>
         <p className="pg-guide">손끝으로 궤도를 움직이며 행성을 발견해보세요.</p>
       </header>
@@ -491,14 +546,13 @@ function HomePage({
         <div className="pg-orbit pg-orbit--middle" aria-hidden="true" />
         <div className="pg-orbit pg-orbit--inner" aria-hidden="true" />
         <div className="pg-sun" aria-hidden="true" />
-        <button className="pg-planet pg-planet--a is-active" data-planet="baby" data-orbit="4" data-phase="2.78" data-speed="0.1" type="button" aria-label="육아하는 부부의 행성 선택" />
+        <button className="pg-planet pg-planet--a" data-planet="baby" data-orbit="4" data-phase="2.78" data-speed="0.1" type="button" aria-label="육아하는 부부의 행성 선택" />
         <button className="pg-planet pg-planet--b" data-planet="bath" data-orbit="2" data-phase="3.46" data-speed="0.16" type="button" aria-label="배스 케어의 행성 선택" />
         <button className="pg-planet pg-planet--c" data-planet="plant" data-orbit="3" data-phase="5.02" data-speed="0.12" type="button" aria-label="식물과 함께 사는 행성 선택" />
         <button className="pg-planet pg-planet--d" data-planet="party" data-orbit="4" data-phase="6.06" data-speed="0.09" type="button" aria-label="파티를 즐기는 행성 선택" />
         <button className="pg-planet pg-planet--e" data-planet="dress" data-orbit="2" data-phase="0.78" data-speed="0.15" type="button" aria-label="드레스룸의 행성 선택" />
         <button className="pg-planet pg-planet--f" data-planet="20s" data-orbit="1" data-phase="4.82" data-speed="0.22" type="button" aria-label="20대 싱글의 행성 선택" />
         <button className="pg-planet pg-planet--g" data-planet="cats" data-orbit="2" data-phase="2.28" data-speed="0.13" type="button" aria-label="반려묘 가족의 행성 선택" />
-        <button className="pg-planet pg-planet--h" data-orbit="4" data-phase="5.58" data-speed="0.08" type="button" aria-label="장식 행성" />
       </div>
 
       <span className="pg-entry-portal" aria-hidden="true">
@@ -518,8 +572,6 @@ function HomePage({
           />
         ))}
       </span>
-      <span className="pg-nav-hit pg-nav-hit--left" aria-hidden="true" />
-      <span className="pg-nav-hit pg-nav-hit--right" aria-hidden="true" />
     </section>
   );
 }
@@ -741,15 +793,14 @@ function GravityInterface({
   return (
     <section className="gravity-frame" aria-label="Personal Gravity">
       <div className="title-copy">
-        <span className="title-orbit" aria-hidden="true" />
-        <h1>Personal Gravity</h1>
+        <PersonalGravityBrand />
         <p>행성을 움직이며 구경해보세요.</p>
       </div>
 
       <article className="description">
         <h2>{planet.title}</h2>
         {planet.description.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
+          <p key={paragraph}>{preventTrailingOrphan(paragraph)}</p>
         ))}
       </article>
 
@@ -765,10 +816,12 @@ function GravityInterface({
       <div className="bottom-guide">
         <p>Smart Home Orbit</p>
         <div className="product-links" aria-label="Product list">
-          {planet.products.map((label, index) => (
-            <div className="product-orbit" key={`${label}-${index}`}>
-              <span>{label}</span>
-              <i aria-hidden="true" />
+          {planet.products.map((product, index) => (
+            <div className="product-orbit" key={`${product.name}-${index}`}>
+              <span>{product.name}</span>
+              <i aria-hidden="true">
+                <img src={product.image} alt="" />
+              </i>
             </div>
           ))}
         </div>
