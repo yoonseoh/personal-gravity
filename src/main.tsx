@@ -38,6 +38,8 @@ type PlanetContent = {
   products: ProductContent[];
 };
 
+const assetUrl = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
 const PLANETS: Record<PlanetKey, PlanetContent> = {
   baby: {
     id: "baby",
@@ -157,6 +159,23 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
 
 const PLANET_ORDER: PlanetKey[] = ["baby", "bath", "cats", "plant", "dress", "20s", "party"];
 
+const PLANET_BUTTONS = [
+  { className: "pg-planet--a", planet: "baby", orbit: "4", phase: "2.78", speed: "0.1", label: "육아하는 부부의 행성 선택" },
+  { className: "pg-planet--b", planet: "bath", orbit: "2", phase: "3.46", speed: "0.16", label: "배스 케어의 행성 선택" },
+  { className: "pg-planet--c", planet: "plant", orbit: "3", phase: "5.02", speed: "0.12", label: "식물과 함께 사는 행성 선택" },
+  { className: "pg-planet--d", planet: "party", orbit: "4", phase: "6.06", speed: "0.09", label: "파티를 즐기는 행성 선택" },
+  { className: "pg-planet--e", planet: "dress", orbit: "2", phase: "0.78", speed: "0.15", label: "드레스룸의 행성 선택" },
+  { className: "pg-planet--f", planet: "20s", orbit: "1", phase: "4.82", speed: "0.22", label: "20대 싱글의 행성 선택" },
+  { className: "pg-planet--g", planet: "cats", orbit: "2", phase: "2.28", speed: "0.13", label: "반려묘 가족의 행성 선택" }
+] satisfies Array<{
+  className: string;
+  planet: PlanetKey;
+  orbit: string;
+  phase: string;
+  speed: string;
+  label: string;
+}>;
+
 const isPlanetKey = (value: string | null | undefined): value is PlanetKey => {
   return value === "baby" || value === "plant" || value === "party" || value === "dress" || value === "bath" || value === "cats" || value === "20s";
 };
@@ -167,8 +186,8 @@ function preloadPointData() {
   PLANET_ORDER.forEach((key) => {
     const pointDataUrl = PLANETS[key].pointDataUrl;
     if (!pointDataUrl) return;
-    urls.add(`${pointDataUrl}.json`);
-    urls.add(`${pointDataUrl}.bin`);
+    urls.add(assetUrl(`${pointDataUrl}.json`));
+    urls.add(assetUrl(`${pointDataUrl}.bin`));
   });
 
   urls.forEach((url) => {
@@ -546,13 +565,19 @@ function HomePage({
         <div className="pg-orbit pg-orbit--middle" aria-hidden="true" />
         <div className="pg-orbit pg-orbit--inner" aria-hidden="true" />
         <div className="pg-sun" aria-hidden="true" />
-        <button className="pg-planet pg-planet--a" data-planet="baby" data-orbit="4" data-phase="2.78" data-speed="0.1" type="button" aria-label="육아하는 부부의 행성 선택" />
-        <button className="pg-planet pg-planet--b" data-planet="bath" data-orbit="2" data-phase="3.46" data-speed="0.16" type="button" aria-label="배스 케어의 행성 선택" />
-        <button className="pg-planet pg-planet--c" data-planet="plant" data-orbit="3" data-phase="5.02" data-speed="0.12" type="button" aria-label="식물과 함께 사는 행성 선택" />
-        <button className="pg-planet pg-planet--d" data-planet="party" data-orbit="4" data-phase="6.06" data-speed="0.09" type="button" aria-label="파티를 즐기는 행성 선택" />
-        <button className="pg-planet pg-planet--e" data-planet="dress" data-orbit="2" data-phase="0.78" data-speed="0.15" type="button" aria-label="드레스룸의 행성 선택" />
-        <button className="pg-planet pg-planet--f" data-planet="20s" data-orbit="1" data-phase="4.82" data-speed="0.22" type="button" aria-label="20대 싱글의 행성 선택" />
-        <button className="pg-planet pg-planet--g" data-planet="cats" data-orbit="2" data-phase="2.28" data-speed="0.13" type="button" aria-label="반려묘 가족의 행성 선택" />
+        {PLANET_BUTTONS.map((button) => (
+          <button
+            key={button.planet}
+            className={`pg-planet ${button.className}`}
+            data-planet={button.planet}
+            data-orbit={button.orbit}
+            data-phase={button.phase}
+            data-speed={button.speed}
+            type="button"
+            aria-label={button.label}
+            style={{ "--planet-texture": `url("${assetUrl(`images/planets/${button.planet === "20s" ? "20s" : button.planet}-sphere.png`)}")` } as React.CSSProperties}
+          />
+        ))}
       </div>
 
       <span className="pg-entry-portal" aria-hidden="true">
@@ -762,7 +787,12 @@ function DetailPage({
       className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}`}
       style={{ "--stage-scale": stageScale } as React.CSSProperties}
     >
-      <Scene settings={settingsSnapshot} modelUrl={planet.modelUrl} pointDataUrl={planet.pointDataUrl} introPaused={isTransitioning} />
+      <Scene
+        settings={settingsSnapshot}
+        modelUrl={assetUrl(planet.modelUrl)}
+        pointDataUrl={planet.pointDataUrl ? assetUrl(planet.pointDataUrl) : undefined}
+        introPaused={isTransitioning}
+      />
       {!isTransitioning && (
         <>
           <GravityInterface
@@ -820,7 +850,7 @@ function GravityInterface({
             <div className="product-orbit" key={`${product.name}-${index}`}>
               <span>{product.name}</span>
               <i aria-hidden="true">
-                <img src={product.image} alt="" />
+                <img src={assetUrl(product.image)} alt="" />
               </i>
             </div>
           ))}
