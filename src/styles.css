@@ -79,7 +79,7 @@ main {
 }
 
 .pg-scene.is-entering {
-  animation: pg-home-reveal-through 1350ms cubic-bezier(0.08, 0.86, 0.13, 1) forwards;
+  animation: pg-home-reveal-through 3800ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
   pointer-events: none;
   will-change: opacity, transform;
 }
@@ -184,20 +184,20 @@ main {
 }
 
 .pg-scene.is-entering .pg-system {
-  animation: pg-system-dive 1350ms cubic-bezier(0.08, 0.86, 0.13, 1) forwards;
+  animation: pg-system-dive 3800ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
   transition: none;
   will-change: transform, opacity, filter;
 }
 
 .pg-scene.is-entering .pg-intro {
-  animation: pg-fade-away 520ms ease forwards;
+  animation: pg-fade-away 1450ms ease forwards;
 }
 
 .pg-scene.is-entering .pg-planet:not(:hover):not(:focus-visible):not(:active),
 .pg-scene.is-entering .pg-orbital-dot,
 .pg-scene.is-entering .pg-orbit-mark,
 .pg-scene.is-entering .pg-sun {
-  animation: pg-fade-away 920ms ease forwards;
+  animation: pg-fade-away 2500ms ease forwards;
 }
 
 .pg-system.is-dragging {
@@ -448,7 +448,7 @@ main {
 }
 
 .pg-scene.is-entering .pg-entry-particle {
-  animation: pg-entry-particle 1120ms cubic-bezier(0.12, 0.78, 0.12, 1) forwards;
+  animation: pg-entry-particle 3200ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
   animation-delay: var(--particle-delay);
 }
 
@@ -461,22 +461,22 @@ main {
       scale(var(--zoom, 1));
   }
 
-  46% {
-    filter: blur(0.2px) brightness(1.08);
+  66% {
+    filter: blur(0.1px) brightness(1.02);
     opacity: 1;
     transform:
       translate(calc(-50% + var(--pan-x, 0px)), calc(-50% + var(--pan-y, 0px)))
-      translate(calc(var(--enter-shift-x) * 0.52), calc(var(--enter-shift-y) * 0.52))
-      scale(calc(var(--zoom, 1) * 2.65));
+      translate(calc(var(--enter-shift-x) * 0.34), calc(var(--enter-shift-y) * 0.34))
+      scale(calc(var(--zoom, 1) * 1.72));
   }
 
   100% {
-    filter: blur(1.6px) brightness(0.42);
-    opacity: 0.06;
+    filter: blur(1.4px) brightness(0.42);
+    opacity: 0.04;
     transform:
       translate(calc(-50% + var(--pan-x, 0px)), calc(-50% + var(--pan-y, 0px)))
       translate(var(--enter-shift-x), var(--enter-shift-y))
-      scale(calc(var(--zoom, 1) * 9.4));
+      scale(calc(var(--zoom, 1) * 6.8));
   }
 }
 
@@ -935,7 +935,7 @@ main {
     radial-gradient(circle at center, rgba(255, 255, 255, 0.035), transparent 18%),
     #000;
   pointer-events: none;
-  animation: entry-loading-arrive 3300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: entry-loading-arrive 5800ms cubic-bezier(0.22, 0.62, 0.16, 1) both;
 }
 
 .entry-loading > * {
@@ -963,13 +963,29 @@ main {
   letter-spacing: 0.02em;
 }
 
-.entry-loading > p:last-child {
-  width: min(82vw, 520px);
-  margin: 116px 0 0;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: clamp(12px, 0.9vw, 15px);
-  font-weight: 300;
-  line-height: 1.65;
+.entry-loading__dots::after {
+  display: inline-block;
+  width: 1.1em;
+  text-align: left;
+  content: ".";
+  animation: entry-loading-dots 1.75s steps(1, end) infinite;
+}
+
+@keyframes entry-loading-dots {
+  0%,
+  32% {
+    content: ".";
+  }
+
+  33%,
+  65% {
+    content: "..";
+  }
+
+  66%,
+  100% {
+    content: "...";
+  }
 }
 
 .particle-panel {
@@ -1466,9 +1482,9 @@ main {
   }
 
   .description {
-    top: 22vh;
-    left: 8vw;
-    width: 84vw;
+    top: 313px;
+    left: 134px;
+    width: 520px;
   }
 
   .bottom-guide {

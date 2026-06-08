@@ -18,7 +18,7 @@ export type ViewerSettings = {
 };
 
 const MAX_DENSITY = 500_000;
-const ENTRY_LOADING_DURATION_MS = 3300;
+const ENTRY_LOADING_DURATION_MS = 5800;
 const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
 
 type PlanetKey = "baby" | "plant" | "party" | "dress" | "bath" | "cats" | "20s";
@@ -418,7 +418,19 @@ function HomePage({
     }));
     const rotation = { x: -58, y: 14, z: -10 };
     let zoom = 1;
-    let drag: null | { id: number; x: number; y: number; moved: boolean; rotationX: number; rotationY: number; rotationZ: number } = null;
+    let drag: null | {
+      id: number;
+      x: number;
+      y: number;
+      lastX: number;
+      lastY: number;
+      lastTime: number;
+      moved: boolean;
+      rotationX: number;
+      rotationY: number;
+      rotationZ: number;
+    } = null;
+    let inertia = { x: 0, y: 0, z: 0 };
     let frame = 0;
     let lastFrame = 0;
 
@@ -481,6 +493,18 @@ function HomePage({
         lastFrame = now;
         const time = now / 1000;
         if (!drag) {
+          const inertiaSpeed = Math.hypot(inertia.x, inertia.y, inertia.z);
+          if (inertiaSpeed > 0.003) {
+            rotation.x = Math.max(-138, Math.min(138, rotation.x + inertia.x));
+            rotation.y += inertia.y;
+            rotation.z += inertia.z;
+            inertia.x *= 0.88;
+            inertia.y *= 0.88;
+            inertia.z *= 0.88;
+          } else {
+            inertia = { x: 0, y: 0, z: 0 };
+          }
+
           rotation.x += Math.sin(time * 0.42 + rotation.z) * 0.012;
           rotation.y += Math.cos(time * 0.37) * 0.018;
           rotation.z += Math.sin(time * 0.31) * 0.012;
@@ -503,20 +527,46 @@ function HomePage({
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        lastTime: performance.now(),
         moved: false,
         rotationX: rotation.x,
         rotationY: rotation.y,
         rotationZ: rotation.z
       };
+      inertia = { x: 0, y: 0, z: 0 };
     };
     const handlePointerMove = (event: PointerEvent) => {
       if (!drag || drag.id !== event.pointerId) return;
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
+      const now = performance.now();
+      const recentDx = event.clientX - drag.lastX;
+      const recentDy = event.clientY - drag.lastY;
+      const frameScale = 16.67 / Math.max(16.67, now - drag.lastTime);
+
       if (Math.hypot(dx, dy) > 6) drag.moved = true;
       rotation.y = drag.rotationY + dx * 0.34;
       rotation.x = Math.max(-138, Math.min(138, drag.rotationX - dy * 0.34));
       rotation.z = drag.rotationZ + dx * 0.045 + dy * 0.025;
+      const nextInertia = {
+        x: -recentDy * 0.34 * frameScale,
+        y: recentDx * 0.34 * frameScale,
+        z: (recentDx * 0.045 + recentDy * 0.025) * frameScale
+      };
+      const inertiaMagnitude = Math.hypot(nextInertia.x, nextInertia.y, nextInertia.z);
+      const inertiaLimit = 1.3;
+      inertia = inertiaMagnitude > inertiaLimit
+        ? {
+            x: (nextInertia.x / inertiaMagnitude) * inertiaLimit,
+            y: (nextInertia.y / inertiaMagnitude) * inertiaLimit,
+            z: (nextInertia.z / inertiaMagnitude) * inertiaLimit
+          }
+        : nextInertia;
+      drag.lastX = event.clientX;
+      drag.lastY = event.clientY;
+      drag.lastTime = now;
     };
     const stopDrag = () => {
       if (drag?.moved) {
@@ -524,6 +574,9 @@ function HomePage({
         window.setTimeout(() => {
           suppressClickRef.current = false;
         }, 120);
+      }
+      if (drag && performance.now() - drag.lastTime > 140) {
+        inertia = { x: 0, y: 0, z: 0 };
       }
       drag = null;
       system.classList.remove("is-dragging");
@@ -557,7 +610,7 @@ function HomePage({
       <header className="pg-intro">
         <PersonalGravityBrand />
         <p className="pg-subtitle">당신이 중심이 되는 세상</p>
-        <p className="pg-guide">손끝으로 궤도를 움직이며 행성을 발견해보세요.</p>
+        <p className="pg-guide">당신의 하루가 머무는 행성을 찾아보세요.</p>
       </header>
 
       <div className="pg-system" ref={systemRef} onClick={startEnter}>
@@ -750,8 +803,10 @@ function EntryLoadingOverlay({ planet }: { planet: PlanetContent }) {
   return (
     <div className="entry-loading" aria-live="polite" aria-label={`${planet.entryLabel}의 Personal Gravity로 진입하는 중`}>
       <p className="entry-loading__eyebrow">PERSONAL GRAVITY</p>
-      <strong>{planet.entryLabel}의 Personal Gravity로 진입하는 중...</strong>
-      <p>입자의 흐름이 행성의 리듬에 맞춰 정렬되고 있습니다.</p>
+      <strong>
+        {planet.entryLabel}의 Personal Gravity로 진입하는 중
+        <span className="entry-loading__dots" aria-hidden="true" />
+      </strong>
     </div>
   );
 }
