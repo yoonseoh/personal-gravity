@@ -160,16 +160,17 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
 const PLANET_ORDER: PlanetKey[] = ["baby", "bath", "cats", "plant", "dress", "20s", "party"];
 
 const PLANET_BUTTONS = [
-  { className: "pg-planet--a", planet: "baby", orbit: "4", phase: "2.78", speed: "0.1", label: "육아하는 부부의 행성 선택" },
-  { className: "pg-planet--b", planet: "bath", orbit: "2", phase: "3.46", speed: "0.16", label: "배스 케어의 행성 선택" },
-  { className: "pg-planet--c", planet: "plant", orbit: "3", phase: "5.02", speed: "0.12", label: "식물과 함께 사는 행성 선택" },
-  { className: "pg-planet--d", planet: "party", orbit: "4", phase: "6.06", speed: "0.09", label: "파티를 즐기는 행성 선택" },
-  { className: "pg-planet--e", planet: "dress", orbit: "2", phase: "0.78", speed: "0.15", label: "드레스룸의 행성 선택" },
-  { className: "pg-planet--f", planet: "20s", orbit: "1", phase: "4.82", speed: "0.22", label: "20대 싱글의 행성 선택" },
-  { className: "pg-planet--g", planet: "cats", orbit: "2", phase: "2.28", speed: "0.13", label: "반려묘 가족의 행성 선택" }
+  { className: "pg-planet--a", planet: "baby", texture: "baby-sphere.png", orbit: "4", phase: "2.78", speed: "0.1", label: "육아하는 부부의 행성 선택" },
+  { className: "pg-planet--b", planet: "bath", texture: "bath-sphere.png", orbit: "2", phase: "3.46", speed: "0.16", label: "배스 케어의 행성 선택" },
+  { className: "pg-planet--c", planet: "plant", texture: "plant-sphere.png", orbit: "3", phase: "5.02", speed: "0.12", label: "식물과 함께 사는 행성 선택" },
+  { className: "pg-planet--d", planet: "party", texture: "party-sphere.png", orbit: "4", phase: "6.06", speed: "0.09", label: "파티를 즐기는 행성 선택" },
+  { className: "pg-planet--e", planet: "dress", texture: "dress-sphere.png", orbit: "2", phase: "0.78", speed: "0.15", label: "드레스룸의 행성 선택" },
+  { className: "pg-planet--f", planet: "20s", texture: "20s-sphere.png", orbit: "1", phase: "4.82", speed: "0.22", label: "20대 싱글의 행성 선택" },
+  { className: "pg-planet--g", planet: "cats", texture: "cats-sphere.png", orbit: "2", phase: "2.28", speed: "0.13", label: "반려묘 가족의 행성 선택" }
 ] satisfies Array<{
   className: string;
   planet: PlanetKey;
+  texture: string;
   orbit: string;
   phase: string;
   speed: string;
@@ -575,8 +576,9 @@ function HomePage({
             data-speed={button.speed}
             type="button"
             aria-label={button.label}
-            style={{ "--planet-texture": `url("${assetUrl(`images/planets/${button.planet === "20s" ? "20s" : button.planet}-sphere.png`)}")` } as React.CSSProperties}
-          />
+          >
+            <img className="pg-planet-image" src={assetUrl(`images/planets/${button.texture}`)} alt="" draggable={false} />
+          </button>
         ))}
       </div>
 

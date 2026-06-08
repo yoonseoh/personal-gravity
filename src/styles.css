@@ -302,7 +302,6 @@ main {
   --planet-outline: #9ed6ff;
   --planet-glow: rgba(120, 205, 255, 0.18);
   --planet-glow-active: rgba(137, 217, 255, 0.5);
-  --planet-texture: url("/images/planets/baby-sphere.png");
 }
 
 .pg-planet[data-planet="plant"] {
@@ -312,7 +311,6 @@ main {
   --planet-outline: #9dffb7;
   --planet-glow: rgba(115, 255, 159, 0.18);
   --planet-glow-active: rgba(134, 255, 177, 0.52);
-  --planet-texture: url("/images/planets/plant-sphere.png");
 }
 
 .pg-planet[data-planet="party"] {
@@ -322,7 +320,6 @@ main {
   --planet-outline: #ff9ee0;
   --planet-glow: rgba(255, 110, 216, 0.2);
   --planet-glow-active: rgba(255, 126, 224, 0.54);
-  --planet-texture: url("/images/planets/party-sphere.png");
 }
 
 .pg-planet[data-planet="dress"] {
@@ -332,7 +329,6 @@ main {
   --planet-outline: #ffd38a;
   --planet-glow: rgba(255, 191, 95, 0.2);
   --planet-glow-active: rgba(255, 203, 116, 0.54);
-  --planet-texture: url("/images/planets/dress-sphere.png");
 }
 
 .pg-planet[data-planet="bath"] {
@@ -342,7 +338,6 @@ main {
   --planet-outline: #85ecff;
   --planet-glow: rgba(92, 222, 255, 0.2);
   --planet-glow-active: rgba(105, 235, 255, 0.54);
-  --planet-texture: url("/images/planets/bath-sphere.png");
 }
 
 .pg-planet[data-planet="cats"] {
@@ -352,7 +347,6 @@ main {
   --planet-outline: #ffbf78;
   --planet-glow: rgba(255, 162, 86, 0.2);
   --planet-glow-active: rgba(255, 178, 102, 0.54);
-  --planet-texture: url("/images/planets/cats-sphere.png");
 }
 
 .pg-planet[data-planet="20s"] {
@@ -362,14 +356,10 @@ main {
   --planet-outline: #c9a4ff;
   --planet-glow: rgba(181, 126, 255, 0.2);
   --planet-glow-active: rgba(198, 151, 255, 0.54);
-  --planet-texture: url("/images/planets/20s-sphere.png");
 }
 
 .pg-planet[data-planet] {
-  background:
-    radial-gradient(circle at var(--light-x, 32%) var(--light-y, 24%), rgba(255, 255, 255, 0.42) 0 2%, rgba(255, 255, 255, 0.09) 9%, transparent 22%),
-    var(--planet-texture) center / 102% 102% no-repeat,
-    #07101c;
+  background: radial-gradient(circle at var(--light-x, 32%) var(--light-y, 24%), var(--planet-core), var(--planet-mid) 48%, var(--planet-shadow) 100%);
   box-shadow:
     inset -7px -9px 15px rgba(0, 0, 0, 0.34),
     inset 6px 5px 12px rgba(255, 255, 255, 0.13),
@@ -377,7 +367,23 @@ main {
     0 0 34px var(--planet-glow);
 }
 
+.pg-planet-image {
+  position: absolute;
+  inset: -1%;
+  z-index: 1;
+  display: block;
+  width: 102%;
+  height: 102%;
+  max-width: none;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+  user-select: none;
+}
+
 .pg-planet[data-planet]::before {
+  position: absolute;
+  z-index: 2;
   inset: 0;
   border: 0;
   background:
@@ -388,6 +394,8 @@ main {
 }
 
 .pg-planet[data-planet]::after {
+  position: absolute;
+  z-index: 3;
   inset: -4%;
   border: 1px solid rgba(181, 225, 255, 0.34);
   background: radial-gradient(circle at var(--light-x, 32%) var(--light-y, 24%), rgba(255, 255, 255, 0.25), transparent 34%);
