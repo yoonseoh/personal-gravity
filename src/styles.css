@@ -359,11 +359,11 @@ main {
 }
 
 .pg-planet[data-planet] {
-  background: radial-gradient(circle at var(--light-x, 32%) var(--light-y, 24%), var(--planet-core), var(--planet-mid) 48%, var(--planet-shadow) 100%);
+  background: rgba(0, 0, 0, 0.08);
   box-shadow:
-    inset -7px -9px 15px rgba(0, 0, 0, 0.34),
-    inset 6px 5px 12px rgba(255, 255, 255, 0.13),
-    0 0 16px rgba(255, 255, 255, 0.18),
+    inset -7px -9px 15px rgba(0, 0, 0, 0.18),
+    inset 6px 5px 12px rgba(255, 255, 255, 0.04),
+    0 0 16px rgba(255, 255, 255, 0.08),
     0 0 34px var(--planet-glow);
 }
 
