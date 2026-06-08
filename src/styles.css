@@ -144,7 +144,7 @@ main {
 
 .pg-intro h1 {
   margin: 0;
-  font-size: clamp(28px, 2.5vw, 96px);
+  font-size: clamp(24px, 2.1vw, 80px);
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: 0.32em;
@@ -284,7 +284,7 @@ main {
 .pg-planet:hover,
 .pg-planet:focus-visible,
 .pg-planet:active {
-  outline: 2px solid rgba(255, 255, 255, 0.96);
+  outline: 1px solid rgba(255, 255, 255, 0.96);
   outline-offset: 7px;
   box-shadow:
     0 0 24px rgba(255, 255, 255, 0.34),
@@ -436,15 +436,12 @@ main {
   aspect-ratio: 1;
   border-radius: 50%;
   background: rgba(226, 243, 255, var(--particle-opacity));
-  box-shadow:
-    0 0 5px rgba(160, 220, 255, 0.42),
-    0 0 12px rgba(255, 255, 255, 0.1);
   opacity: 0;
   transform:
     translate(-50%, -50%)
     translate(var(--particle-x), var(--particle-y))
     scale(0.15);
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 .pg-scene.is-entering .pg-entry-particle {
@@ -898,7 +895,6 @@ main {
   transition:
     left 900ms cubic-bezier(0.16, 1, 0.3, 1),
     width 900ms cubic-bezier(0.16, 1, 0.3, 1);
-  animation: detail-space-arrive 900ms ease-out both;
 }
 
 .scene::after {
@@ -942,9 +938,22 @@ main {
   grid-area: 1 / 1;
 }
 
-.entry-loading__eyebrow {
-  margin: 0 0 92px;
+.entry-loading__centerpiece {
+  display: grid;
+  justify-items: center;
   align-self: center;
+  justify-self: center;
+  gap: clamp(18px, 3vh, 34px);
+}
+
+.entry-loading__copy {
+  display: grid;
+  justify-items: center;
+  gap: clamp(8px, 1.2vh, 14px);
+}
+
+.entry-loading__eyebrow {
+  margin: 0;
   color: rgba(255, 255, 255, 0.58);
   font-size: 12px;
   font-weight: 300;
@@ -969,6 +978,15 @@ main {
   text-align: left;
   content: ".";
   animation: entry-loading-dots 1.75s steps(1, end) infinite;
+}
+
+.entry-loading__particle-canvas {
+  position: relative;
+  width: min(38vw, 220px);
+  height: 126px;
+  opacity: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 @keyframes entry-loading-dots {

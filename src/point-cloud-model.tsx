@@ -12,6 +12,7 @@ type PointCloudModelProps = {
   settings: ViewerSettings;
   maxDensity: number;
   displayPosition?: [number, number, number];
+  initialRotation?: [number, number, number];
   introPaused?: boolean;
 };
 
@@ -394,6 +395,7 @@ function GeneratedPointCloudModel({
   settings,
   maxDensity,
   displayPosition = [0.72, -0.08, 0],
+  initialRotation = [0, 0, 0],
   introPaused = false
 }: Omit<PointCloudModelProps, "pointDataUrl">) {
   const gltf = useLoader(GLTFLoader, modelUrl);
@@ -404,6 +406,7 @@ function GeneratedPointCloudModel({
       cloud={cloud}
       settings={settings}
       displayPosition={displayPosition}
+      initialRotation={initialRotation}
       introPaused={introPaused}
     />
   );
@@ -413,11 +416,13 @@ function BakedPointCloudModel({
   pointDataUrl,
   settings,
   displayPosition,
+  initialRotation,
   introPaused = false
 }: {
   pointDataUrl: string;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
+  initialRotation: [number, number, number];
   introPaused?: boolean;
 }) {
   const [cloud, setCloud] = useState<SampledCloud | null>(null);
@@ -456,18 +461,28 @@ function BakedPointCloudModel({
 
   if (!cloud) return null;
 
-  return <PointCloudPoints cloud={cloud} settings={settings} displayPosition={displayPosition} introPaused={introPaused} />;
+  return (
+    <PointCloudPoints
+      cloud={cloud}
+      settings={settings}
+      displayPosition={displayPosition}
+      initialRotation={initialRotation}
+      introPaused={introPaused}
+    />
+  );
 }
 
 function PointCloudPoints({
   cloud,
   settings,
   displayPosition,
+  initialRotation,
   introPaused = false
 }: {
   cloud: SampledCloud;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
+  initialRotation: [number, number, number];
   introPaused?: boolean;
 }) {
   const rotationRef = useRef<THREE.Group>(null);
@@ -477,11 +492,12 @@ function PointCloudPoints({
 
   useEffect(() => {
     introTimeRef.current = 0;
+    rotationRef.current?.rotation.set(initialRotation[0], initialRotation[1], initialRotation[2]);
     const positionAttribute = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
     positionAttribute.array.set(cloud.introPositions);
     positionAttribute.needsUpdate = true;
     cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount, 14_000));
-  }, [cloud.geometry, cloud.introPositions]);
+  }, [cloud.geometry, cloud.introPositions, initialRotation]);
 
   useEffect(() => {
     return () => cloud.geometry.dispose();
@@ -533,6 +549,7 @@ function PointCloudPoints({
     <group
       ref={rotationRef}
       position={displayPosition}
+      rotation={initialRotation}
       scale={[cloud.scale * settings.spread, cloud.scale, cloud.scale * settings.spread]}
     >
       <group position={[-center.x, -center.y, -center.z]}>
@@ -560,10 +577,19 @@ export function PointCloudModel({
   settings,
   maxDensity,
   displayPosition = [0.72, -0.08, 0],
+  initialRotation = [0, 0, 0],
   introPaused = false
 }: PointCloudModelProps) {
   if (pointDataUrl) {
-    return <BakedPointCloudModel pointDataUrl={pointDataUrl} settings={settings} displayPosition={displayPosition} introPaused={introPaused} />;
+    return (
+      <BakedPointCloudModel
+        pointDataUrl={pointDataUrl}
+        settings={settings}
+        displayPosition={displayPosition}
+        initialRotation={initialRotation}
+        introPaused={introPaused}
+      />
+    );
   }
 
   return (
@@ -572,6 +598,7 @@ export function PointCloudModel({
       settings={settings}
       maxDensity={maxDensity}
       displayPosition={displayPosition}
+      initialRotation={initialRotation}
       introPaused={introPaused}
     />
   );

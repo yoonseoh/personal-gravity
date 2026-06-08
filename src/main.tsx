@@ -23,6 +23,16 @@ const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
 
 type PlanetKey = "baby" | "plant" | "party" | "dress" | "bath" | "cats" | "20s";
 
+const DETAIL_INITIAL_ROTATIONS: Record<PlanetKey, [number, number, number]> = {
+  baby: [0, -0.28, 0],
+  bath: [0, 0.08, 0],
+  cats: [0, -0.36, 0],
+  plant: [0, -0.16, 0],
+  dress: [0, 0.34, 0],
+  "20s": [0, -0.42, 0],
+  party: [0, 0.18, 0]
+};
+
 type ProductContent = {
   name: string;
   image: string;
@@ -230,7 +240,7 @@ function getStageScale() {
   return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
 }
 
-const ENTRY_PARTICLES = Array.from({ length: 280 }, (_, index) => {
+const ENTRY_PARTICLES = Array.from({ length: 64 }, (_, index) => {
   const angle = index * 137.508;
   const radius = 42 + (index % 32) * 9.5;
   const depth = 0.36 + ((index * 17) % 100) / 100;
@@ -278,11 +288,13 @@ function Scene({
   settings,
   modelUrl,
   pointDataUrl,
+  initialRotation,
   introPaused = false
 }: {
   settings: ViewerSettings;
   modelUrl: string;
   pointDataUrl?: string;
+  initialRotation: [number, number, number];
   introPaused?: boolean;
 }) {
   return (
@@ -303,6 +315,7 @@ function Scene({
           settings={settings}
           maxDensity={MAX_DENSITY}
           displayPosition={MODEL_DISPLAY_POSITION}
+          initialRotation={initialRotation}
           introPaused={introPaused}
         />
       </Suspense>
@@ -799,14 +812,188 @@ function ParticleControls({ settings, onChange }: DetailControlProps) {
   );
 }
 
+function EntryParticleLoader() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return undefined;
+
+    const orbitPlanes = [
+      { x: -0.92, y: 0.18, z: 0.12 },
+      { x: -0.66, y: 0.92, z: -0.18 },
+      { x: -1.12, y: -0.44, z: 0.5 },
+      { x: -0.28, y: 1.24, z: 0.84 },
+      { x: -1.42, y: 0.54, z: -0.68 },
+      { x: -0.78, y: -1.08, z: -0.36 },
+      { x: -0.38, y: 0.22, z: 1.34 }
+    ];
+    const particles = Array.from({ length: 96 }, (_, index) => {
+      const seed = Math.sin(index * 12.9898) * 43758.5453;
+      const noise = seed - Math.floor(seed);
+      const planeIndex = index % orbitPlanes.length;
+
+      return {
+        angle: (index / 96) * Math.PI * 2,
+        alpha: 0.78 + (index % 6) * 0.04,
+        orbitCosX: Math.cos(orbitPlanes[planeIndex].x),
+        orbitCosY: Math.cos(orbitPlanes[planeIndex].y),
+        orbitCosZ: Math.cos(orbitPlanes[planeIndex].z),
+        orbitSinX: Math.sin(orbitPlanes[planeIndex].x),
+        orbitSinY: Math.sin(orbitPlanes[planeIndex].y),
+        orbitSinZ: Math.sin(orbitPlanes[planeIndex].z),
+        planeIndex,
+        phase: noise * Math.PI * 2,
+        radius: 32 + noise * 7.5,
+        size: 0.34 + (index % 4) * 0.075,
+        speed: 0.22 + (index % 13) * 0.008,
+        wobble: 1.8 + noise * 4.6
+      };
+    });
+    let animationFrame = 0;
+    let width = 0;
+    let height = 0;
+    let lastRender = 0;
+    let pixelRatio = 1;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      pixelRatio = 1;
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.floor(width * pixelRatio);
+      canvas.height = Math.floor(height * pixelRatio);
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const render = (now: number) => {
+      if (now - lastRender < 1000 / 24) {
+        animationFrame = requestAnimationFrame(render);
+        return;
+      }
+
+      lastRender = now;
+      const time = now * 0.001;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      context.clearRect(0, 0, width, height);
+
+      context.globalCompositeOperation = "lighter";
+      context.lineCap = "round";
+
+      const rotateAxis = (x: number, y: number, z: number, cosX: number, sinX: number, cosY: number, sinY: number, cosZ: number, sinZ: number) => {
+        const nextY = y * cosX - z * sinX;
+        const nextZ = y * sinX + z * cosX;
+        const nextX = x * cosY + nextZ * sinY;
+        const finalZ = -x * sinY + nextZ * cosY;
+        const finalX = nextX * cosZ - nextY * sinZ;
+        const finalY = nextX * sinZ + nextY * cosZ;
+
+        return { x: finalX, y: finalY, z: finalZ };
+      };
+
+      const projectPoint = (x: number, y: number, z: number) => {
+        const depth = 1 / (1 - z / 150);
+
+        return {
+          depth,
+          x: centerX + x * depth * 1.48,
+          y: centerY + y * depth * 1.48,
+          z
+        };
+      };
+
+      const globalRotationX = -0.18;
+      const globalRotationY = time * 0.28;
+      const globalRotationZ = 0.12;
+      const globalCosX = Math.cos(globalRotationX);
+      const globalSinX = Math.sin(globalRotationX);
+      const globalCosY = Math.cos(globalRotationY);
+      const globalSinY = Math.sin(globalRotationY);
+      const globalCosZ = Math.cos(globalRotationZ);
+      const globalSinZ = Math.sin(globalRotationZ);
+
+      particles.forEach((particle, index) => {
+        const wave = (Math.sin(time * 0.52 + particle.phase) + 1) / 2;
+        const angle = particle.angle + time * particle.speed * (particle.planeIndex % 2 === 0 ? 1 : -1);
+        const previousAngle = angle - 0.035;
+        const radius = particle.radius * (0.96 + wave * 0.07);
+        const local = rotateAxis(
+          Math.cos(angle) * radius,
+          Math.sin(angle * 2 + particle.phase) * particle.wobble,
+          Math.sin(angle) * radius,
+          particle.orbitCosX,
+          particle.orbitSinX,
+          particle.orbitCosY,
+          particle.orbitSinY,
+          particle.orbitCosZ,
+          particle.orbitSinZ
+        );
+        const previousLocal = rotateAxis(
+          Math.cos(previousAngle) * radius,
+          Math.sin(previousAngle * 2 + particle.phase) * particle.wobble,
+          Math.sin(previousAngle) * radius,
+          particle.orbitCosX,
+          particle.orbitSinX,
+          particle.orbitCosY,
+          particle.orbitSinY,
+          particle.orbitCosZ,
+          particle.orbitSinZ
+        );
+        const global = rotateAxis(local.x, local.y, local.z, globalCosX, globalSinX, globalCosY, globalSinY, globalCosZ, globalSinZ);
+        const previousGlobal = rotateAxis(previousLocal.x, previousLocal.y, previousLocal.z, globalCosX, globalSinX, globalCosY, globalSinY, globalCosZ, globalSinZ);
+        const projected = projectPoint(global.x, global.y, global.z);
+        const previous = projectPoint(previousGlobal.x, previousGlobal.y, previousGlobal.z);
+        const depthNormal = Math.max(0, Math.min(1, (projected.z + 46) / 92));
+        const size = Math.max(0.32, particle.size * projected.depth * (0.64 + depthNormal * 0.82));
+        const alpha = Math.min(1, particle.alpha * (0.84 + wave * 0.18) * (0.62 + depthNormal * 0.58));
+
+        if (index % 5 === 0) {
+          context.beginPath();
+          context.moveTo(previous.x, previous.y);
+          context.lineTo(projected.x, projected.y);
+          context.strokeStyle = `rgba(210, 232, 255, ${alpha * 0.24})`;
+          context.lineWidth = Math.max(0.14, size * 0.3);
+          context.stroke();
+        }
+
+        context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        context.fillRect(projected.x - size / 2, projected.y - size / 2, size, size);
+      });
+
+      context.globalCompositeOperation = "source-over";
+      animationFrame = requestAnimationFrame(render);
+    };
+
+    resize();
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
+    animationFrame = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="entry-loading__particle-canvas" aria-hidden="true" />;
+}
+
 function EntryLoadingOverlay({ planet }: { planet: PlanetContent }) {
   return (
     <div className="entry-loading" aria-live="polite" aria-label={`${planet.entryLabel}의 Personal Gravity로 진입하는 중`}>
-      <p className="entry-loading__eyebrow">PERSONAL GRAVITY</p>
-      <strong>
-        {planet.entryLabel}의 Personal Gravity로 진입하는 중
-        <span className="entry-loading__dots" aria-hidden="true" />
-      </strong>
+      <div className="entry-loading__centerpiece">
+        <EntryParticleLoader />
+        <div className="entry-loading__copy">
+          <p className="entry-loading__eyebrow">PERSONAL GRAVITY</p>
+          <strong>
+            {planet.entryLabel}의 Personal Gravity로 진입하는 중
+            <span className="entry-loading__dots" aria-hidden="true" />
+          </strong>
+        </div>
+      </div>
     </div>
   );
 }
@@ -848,6 +1035,7 @@ function DetailPage({
         settings={settingsSnapshot}
         modelUrl={assetUrl(planet.modelUrl)}
         pointDataUrl={planet.pointDataUrl ? assetUrl(planet.pointDataUrl) : undefined}
+        initialRotation={DETAIL_INITIAL_ROTATIONS[planet.id]}
         introPaused={isTransitioning}
       />
       {!isTransitioning && (
