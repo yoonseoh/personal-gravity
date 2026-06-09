@@ -1,5 +1,5 @@
 {
-  "pointCount": 500000,
+  "pointCount": 90000,
   "bounds": {
     "min": [
       -3.6696547223372447,
@@ -12,5 +12,6 @@
       13.008908109231959
     ]
   },
-  "source": "/Users/ohyunseo/Downloads/LG model_PLANT2.glb"
+  "source": "/Users/ohyunseo/Downloads/LG model_PLANT2.glb",
+  "sharedBoundsSource": "lg-model-plant2-final-points"
 }

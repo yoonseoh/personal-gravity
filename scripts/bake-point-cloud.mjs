@@ -31,6 +31,10 @@ if (!inputPath || !outputBase) usage();
 const requestedPointCount = Math.max(1_000, Number(pointCountArg));
 if (!Number.isFinite(requestedPointCount)) usage();
 const colorMode = process.env.COLOR_MODE ?? "natural";
+const nodeIncludePattern = process.env.NODE_INCLUDE_PATTERN ? new RegExp(process.env.NODE_INCLUDE_PATTERN) : null;
+const nodeExcludePattern = process.env.NODE_EXCLUDE_PATTERN ? new RegExp(process.env.NODE_EXCLUDE_PATTERN) : null;
+const hemisphereSampleBoost = Math.max(0.1, Number(process.env.HEMISPHERE_SAMPLE_BOOST ?? 1));
+const hemisphereBrightness = Math.max(0.1, Number(process.env.HEMISPHERE_BRIGHTNESS ?? 1));
 
 function parseGlb(buffer) {
   if (buffer.toString("utf8", 0, 4) !== "glTF") {
@@ -204,16 +208,21 @@ function collectMeshInstances(gltf) {
   const scene = gltf.scenes?.[gltf.scene ?? 0];
   const roots = scene?.nodes ?? gltf.nodes?.map((_, index) => index) ?? [];
 
-  function visit(nodeIndex, parentMatrix) {
+  function visit(nodeIndex, parentMatrix, parentPath = [], parentIncluded = false, parentExcluded = false) {
     const node = gltf.nodes[nodeIndex];
     const worldMatrix = parentMatrix.clone().multiply(getNodeLocalMatrix(node));
+    const nodeName = node.name ?? `node_${nodeIndex}`;
+    const nodePath = [...parentPath, nodeName];
+    const nodeLabel = nodePath.join(" / ");
+    const isIncluded = parentIncluded || Boolean(nodeIncludePattern?.test(nodeName) || nodeIncludePattern?.test(nodeLabel));
+    const isExcluded = parentExcluded || Boolean(nodeExcludePattern?.test(nodeName) || nodeExcludePattern?.test(nodeLabel));
 
-    if (node.mesh !== undefined) {
+    if (node.mesh !== undefined && !isExcluded && (!nodeIncludePattern || isIncluded)) {
       instances.push({ meshIndex: node.mesh, matrix: worldMatrix });
     }
 
     for (const child of node.children ?? []) {
-      visit(child, worldMatrix);
+      visit(child, worldMatrix, nodePath, isIncluded, isExcluded);
     }
   }
 
@@ -302,8 +311,9 @@ function allocateSamples(primitiveClouds, sceneBounds, pointCount) {
     const sceneFootprint = Math.max(sceneSize.x * sceneSize.z, 1);
     const broadRatio = footprint / sceneFootprint;
     const isHemisphereLikeBase = normalizedY < 0.3 && broadRatio > 0.08;
-    const lowerBoost = isHemisphereLikeBase ? 0.15 : normalizedY < 0.46 ? 1.22 : 1;
-    const broadBoost = isHemisphereLikeBase ? 0.18 : broadRatio > 0.08 ? 1.25 : 1;
+    item.isHemisphereLikeBase = isHemisphereLikeBase;
+    const lowerBoost = isHemisphereLikeBase ? 0.15 * hemisphereSampleBoost : normalizedY < 0.46 ? 1.22 : 1;
+    const broadBoost = isHemisphereLikeBase ? 0.18 * hemisphereSampleBoost : broadRatio > 0.08 ? 1.25 : 1;
 
     return Math.sqrt(item.totalArea) * lowerBoost * broadBoost;
   });
@@ -414,6 +424,10 @@ function sampleCloud(primitiveClouds, pointCount) {
           THREE.MathUtils.clamp((materialColor.b - 0.5) * contrast + 0.5, 0, 1)
         );
         materialColor.offsetHSL(0, 0.16, luma < 0.52 ? -0.075 : -0.025);
+      }
+
+      if (primitive.isHemisphereLikeBase && hemisphereBrightness !== 1) {
+        materialColor.multiplyScalar(hemisphereBrightness).lerp(new THREE.Color("#fff3df"), 0.1);
       }
 
       const subtleNoise = 0.9 + random() * 0.16;

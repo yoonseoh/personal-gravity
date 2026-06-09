@@ -59,6 +59,11 @@ main {
   opacity: 0;
 }
 
+.detail-stage.is-plant-interactive {
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .pg-scene {
   position: fixed;
   inset: 0;
@@ -1211,7 +1216,7 @@ main {
 
 .title-copy h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 400;
   line-height: 1.9;
   letter-spacing: 0.4em;
@@ -1229,7 +1234,7 @@ main {
 
 .description {
   position: absolute;
-  top: 313px;
+  top: 652px;
   left: 134px;
   width: 238px;
 }
@@ -1246,7 +1251,7 @@ main {
 .description p {
   margin: 0 0 18px;
   color: rgba(255, 255, 255, 0.88);
-  font-size: 12.8px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.6;
   letter-spacing: 0;
@@ -1313,27 +1318,16 @@ main {
   top: 146.88px;
 }
 
-.parameter-note {
-  position: absolute;
-  top: 397.81px;
-  left: 1618px;
-  width: 177px;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 12.8px;
-  line-height: 1.5;
-  text-align: center;
-  white-space: pre-wrap;
-}
-
 .bottom-guide {
   position: absolute;
-  left: 124px;
-  top: 711.64px;
+  left: auto;
+  right: 108px;
+  top: 652px;
   bottom: auto;
   display: block;
   width: 650px;
   padding: 0;
+  text-align: right;
 }
 
 .bottom-guide p {
@@ -1346,9 +1340,10 @@ main {
 
 .product-links {
   display: grid;
-  grid-template-columns: repeat(4, 132px);
+  grid-auto-flow: column;
+  grid-auto-columns: 132px;
   gap: 18px;
-  justify-content: start;
+  justify-content: end;
   color: rgba(255, 255, 255, 0.82);
   font-size: 11.3px;
   line-height: 1.2;
@@ -1359,17 +1354,18 @@ main {
 .product-orbit {
   display: grid;
   justify-items: center;
-  grid-template-rows: 30px 132px;
+  grid-template-rows: 132px 30px;
   gap: 14px;
   min-width: 0;
 }
 
 .product-orbit span {
   display: block;
+  order: 2;
   width: 132px;
   max-width: 132px;
   align-self: start;
-  font-size: 10.5px;
+  font-size: 14px;
   line-height: 1.35;
   word-break: keep-all;
   overflow-wrap: normal;
@@ -1378,48 +1374,21 @@ main {
 .product-orbit i {
   position: relative;
   display: block;
+  order: 1;
   width: 132px;
   height: 132px;
   overflow: hidden;
-  border: 1px solid rgba(226, 236, 244, 0.42);
+  border: 0;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.08), transparent 28%),
-    radial-gradient(circle at 52% 58%, rgba(19, 25, 30, 0.56), rgba(4, 7, 10, 0.72) 76%);
-  box-shadow:
-    inset 9px 9px 24px rgba(255, 255, 255, 0.035),
-    inset -16px -18px 30px rgba(0, 0, 0, 0.48),
-    0 8px 24px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(5px) saturate(0.72);
   -webkit-backdrop-filter: blur(5px) saturate(0.72);
 }
 
-.product-orbit i::before {
-  position: absolute;
-  z-index: 2;
-  inset: 1px;
-  border-top: 1px solid rgba(255, 255, 255, 0.56);
-  border-right: 1px solid rgba(255, 255, 255, 0.34);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: inherit;
-  content: "";
-  pointer-events: none;
-}
-
 .product-orbit i::after {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 22px;
-  width: 55px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
   content: "";
-  filter: blur(8px);
-  pointer-events: none;
-  transform: rotate(-20deg);
+  display: none;
 }
 
 .product-orbit img {
@@ -1500,7 +1469,7 @@ main {
   }
 
   .description {
-    top: 313px;
+    top: 652px;
     left: 134px;
     width: 520px;
   }

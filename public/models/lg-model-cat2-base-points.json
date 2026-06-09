@@ -1,0 +1,17 @@
+{
+  "pointCount": 400000,
+  "bounds": {
+    "min": [
+      -3.4679978225570096,
+      -3.6795620918273926,
+      4.882174015045166
+    ],
+    "max": [
+      3.891121755398956,
+      2.945270411197214,
+      12.241295786191046
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_Cat2.glb",
+  "sharedBoundsSource": "lg-model-cat2-points"
+}

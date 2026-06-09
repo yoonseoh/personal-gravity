@@ -4,15 +4,21 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { ViewerSettings } from "./main";
+import type { DetailInteractionPoint, ViewerSettings } from "./main";
 
 type PointCloudModelProps = {
   modelUrl: string;
   pointDataUrl?: string;
+  floatingPointDataUrl?: string;
+  floatingPointDataUrls?: string[];
   settings: ViewerSettings;
   maxDensity: number;
   displayPosition?: [number, number, number];
   initialRotation?: [number, number, number];
+  viewRotationX?: number;
+  viewRotationY?: number;
+  viewZoom?: number;
+  interactionPoint?: DetailInteractionPoint;
   introPaused?: boolean;
 };
 
@@ -389,6 +395,9 @@ function easeOutCubic(value: number) {
 
 const INTRO_ANIMATED_POINTS = 72_000;
 const INTRO_DURATION = 1.35;
+const INTERACTION_ALIGNMENT_POINTS = 96_000;
+const INTERACTION_CONNECTION_LINES = 50;
+const ENABLE_TOUCH_PARTICLE_ALIGNMENT = false;
 
 function GeneratedPointCloudModel({
   modelUrl,
@@ -396,8 +405,19 @@ function GeneratedPointCloudModel({
   maxDensity,
   displayPosition = [0.72, -0.08, 0],
   initialRotation = [0, 0, 0],
+  viewRotationX = 0,
+  viewRotationY = 0,
+  viewZoom = 1,
+  interactionPoint,
+  floatingLayer = false,
+  floatingLayerIndex = 0,
+  showConnectionLines = true,
   introPaused = false
-}: Omit<PointCloudModelProps, "pointDataUrl">) {
+}: Omit<PointCloudModelProps, "pointDataUrl" | "floatingPointDataUrl"> & {
+  floatingLayer?: boolean;
+  floatingLayerIndex?: number;
+  showConnectionLines?: boolean;
+}) {
   const gltf = useLoader(GLTFLoader, modelUrl);
   const cloud = useMemo(() => makePointCloud(gltf, maxDensity), [gltf, maxDensity]);
 
@@ -407,6 +427,13 @@ function GeneratedPointCloudModel({
       settings={settings}
       displayPosition={displayPosition}
       initialRotation={initialRotation}
+      viewRotationX={viewRotationX}
+      viewRotationY={viewRotationY}
+      viewZoom={viewZoom}
+      interactionPoint={interactionPoint}
+      floatingLayer={floatingLayer}
+      floatingLayerIndex={floatingLayerIndex}
+      showConnectionLines={showConnectionLines}
       introPaused={introPaused}
     />
   );
@@ -417,12 +444,26 @@ function BakedPointCloudModel({
   settings,
   displayPosition,
   initialRotation,
+  viewRotationX = 0,
+  viewRotationY = 0,
+  viewZoom = 1,
+  interactionPoint,
+  floatingLayer = false,
+  floatingLayerIndex = 0,
+  showConnectionLines = true,
   introPaused = false
 }: {
   pointDataUrl: string;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
   initialRotation: [number, number, number];
+  viewRotationX?: number;
+  viewRotationY?: number;
+  viewZoom?: number;
+  interactionPoint?: DetailInteractionPoint;
+  floatingLayer?: boolean;
+  floatingLayerIndex?: number;
+  showConnectionLines?: boolean;
   introPaused?: boolean;
 }) {
   const [cloud, setCloud] = useState<SampledCloud | null>(null);
@@ -467,6 +508,13 @@ function BakedPointCloudModel({
       settings={settings}
       displayPosition={displayPosition}
       initialRotation={initialRotation}
+      viewRotationX={viewRotationX}
+      viewRotationY={viewRotationY}
+      viewZoom={viewZoom}
+      interactionPoint={interactionPoint}
+      floatingLayer={floatingLayer}
+      floatingLayerIndex={floatingLayerIndex}
+      showConnectionLines={showConnectionLines}
       introPaused={introPaused}
     />
   );
@@ -477,33 +525,106 @@ function PointCloudPoints({
   settings,
   displayPosition,
   initialRotation,
+  viewRotationX = 0,
+  viewRotationY = 0,
+  viewZoom = 1,
+  interactionPoint,
+  floatingLayer = false,
+  floatingLayerIndex = 0,
+  showConnectionLines = true,
   introPaused = false
 }: {
   cloud: SampledCloud;
   settings: ViewerSettings;
   displayPosition: [number, number, number];
   initialRotation: [number, number, number];
+  viewRotationX?: number;
+  viewRotationY?: number;
+  viewZoom?: number;
+  interactionPoint?: DetailInteractionPoint;
+  floatingLayer?: boolean;
+  floatingLayerIndex?: number;
+  showConnectionLines?: boolean;
   introPaused?: boolean;
 }) {
   const rotationRef = useRef<THREE.Group>(null);
+  const innerRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.PointsMaterial>(null);
+  const connectionLineRef = useRef<THREE.LineSegments>(null);
+  const connectionLineMaterialRef = useRef<THREE.LineBasicMaterial>(null);
   const introTimeRef = useRef(0);
+  const autoRotationRef = useRef(0);
+  const interactionRef = useRef<DetailInteractionPoint>({ active: false, x: 0, y: 0, clientX: 0, clientY: 0, velocityX: 0, velocityY: 0, speed: 0 });
+  const alignmentStrengthRef = useRef(0);
+  const connectionFieldAgeRef = useRef(0);
+  const interactionTargetRef = useRef(new THREE.Vector3());
+  const floatingPositionRef = useRef(new THREE.Vector3(...displayPosition));
+  const floatingRotationOffsetRef = useRef(new THREE.Vector3());
+  const floatingRotationTargetRef = useRef(new THREE.Vector3());
+  const floatingOrbitOffsetRef = useRef(new THREE.Vector3());
+  const floatingOrbitTargetRef = useRef(new THREE.Vector3());
+  const floatingOrbitPhaseRef = useRef(0);
+  const viewTransformRef = useRef({ rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom });
   const center = useMemo(() => cloud.bounds.getCenter(new THREE.Vector3()), [cloud]);
+  const boundsSize = useMemo(() => cloud.bounds.getSize(new THREE.Vector3()), [cloud]);
+  const connectionGeometry = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(INTERACTION_CONNECTION_LINES * 2 * 3), 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(INTERACTION_CONNECTION_LINES * 2 * 3), 3));
+    geometry.setDrawRange(0, 0);
+    return geometry;
+  }, []);
+  const connectionLineIndices = useMemo(() => {
+    const maxIndex = Math.max(cloud.pointCount - 1, 0);
+
+    return Array.from({ length: INTERACTION_CONNECTION_LINES }, (_, index) => {
+      const t = INTERACTION_CONNECTION_LINES <= 1 ? 0 : index / (INTERACTION_CONNECTION_LINES - 1);
+      const stagger = ((index * 37) % 97) / 97;
+      return Math.min(maxIndex, Math.floor((t * 0.82 + stagger * 0.18) * maxIndex));
+    });
+  }, [cloud.pointCount]);
+  const projectionTools = useMemo(() => ({
+    cameraNormal: new THREE.Vector3(),
+    modelCenter: new THREE.Vector3(),
+    ndc: new THREE.Vector2(),
+    plane: new THREE.Plane(),
+    raycaster: new THREE.Raycaster(),
+    worldTarget: new THREE.Vector3()
+  }), []);
+
+  useEffect(() => {
+    interactionRef.current = interactionPoint ?? { active: false, x: 0, y: 0, clientX: 0, clientY: 0, velocityX: 0, velocityY: 0, speed: 0 };
+  }, [interactionPoint]);
+
+  useEffect(() => {
+    viewTransformRef.current = { rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom };
+  }, [viewRotationX, viewRotationY, viewZoom]);
 
   useEffect(() => {
     introTimeRef.current = 0;
+    autoRotationRef.current = 0;
     rotationRef.current?.rotation.set(initialRotation[0], initialRotation[1], initialRotation[2]);
+    rotationRef.current?.position.set(displayPosition[0], displayPosition[1], displayPosition[2]);
+    floatingPositionRef.current.set(displayPosition[0], displayPosition[1], displayPosition[2]);
+    floatingRotationOffsetRef.current.set(0, 0, 0);
+    floatingRotationTargetRef.current.set(0, 0, 0);
+    floatingOrbitOffsetRef.current.set(0, 0, 0);
+    floatingOrbitTargetRef.current.set(0, 0, 0);
+    floatingOrbitPhaseRef.current = floatingLayerIndex * 2.15;
     const positionAttribute = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
     positionAttribute.array.set(cloud.introPositions);
     positionAttribute.needsUpdate = true;
     cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount, 14_000));
-  }, [cloud.geometry, cloud.introPositions, initialRotation]);
+  }, [cloud.geometry, cloud.introPositions, displayPosition, floatingLayerIndex, initialRotation]);
 
   useEffect(() => {
-    return () => cloud.geometry.dispose();
-  }, [cloud.geometry]);
+    return () => {
+      cloud.geometry.dispose();
+      connectionGeometry.dispose();
+    };
+  }, [cloud.geometry, connectionGeometry]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (introPaused) return;
 
     introTimeRef.current = Math.min(INTRO_DURATION, introTimeRef.current + delta);
@@ -535,13 +656,221 @@ function PointCloudPoints({
       cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount));
     }
 
+    const interaction = interactionRef.current;
+    alignmentStrengthRef.current = THREE.MathUtils.lerp(alignmentStrengthRef.current, interaction.active ? 1 : 0, interaction.active ? 0.08 : 0.12);
+    connectionFieldAgeRef.current = interaction.active
+      ? Math.min(1, connectionFieldAgeRef.current + delta / 1.9)
+      : Math.max(0, connectionFieldAgeRef.current - delta / 1.35);
+
+    if ((showConnectionLines || floatingLayer || ENABLE_TOUCH_PARTICLE_ALIGNMENT) && interaction.active && rotationRef.current && innerRef.current) {
+      projectionTools.ndc.set(interaction.x, interaction.y);
+      state.camera.getWorldDirection(projectionTools.cameraNormal);
+      rotationRef.current.getWorldPosition(projectionTools.modelCenter);
+      projectionTools.plane.setFromNormalAndCoplanarPoint(projectionTools.cameraNormal, projectionTools.modelCenter);
+      projectionTools.raycaster.setFromCamera(projectionTools.ndc, state.camera);
+
+      if (projectionTools.raycaster.ray.intersectPlane(projectionTools.plane, projectionTools.worldTarget)) {
+        interactionTargetRef.current.copy(projectionTools.worldTarget);
+        innerRef.current.worldToLocal(interactionTargetRef.current);
+      }
+    }
+
+    if (ENABLE_TOUCH_PARTICLE_ALIGNMENT && alignmentStrengthRef.current > 0.01) {
+      const current = positionAttribute.array as Float32Array;
+      const activePointCount = Math.min(settings.density, cloud.pointCount, INTERACTION_ALIGNMENT_POINTS);
+      const activeArrayLength = activePointCount * 3;
+      const anchorX = interactionTargetRef.current.x;
+      const anchorY = interactionTargetRef.current.y;
+      const anchorZ = interactionTargetRef.current.z;
+      const strength = alignmentStrengthRef.current;
+      const time = state.clock.elapsedTime;
+      const boundsMax = Math.max(boundsSize.x, boundsSize.y, boundsSize.z);
+      const pullLimit = boundsMax * (0.0045 + interaction.speed * 0.002);
+      const rotationLimit = boundsMax * (0.003 + interaction.speed * 0.002);
+      const floatProgress = THREE.MathUtils.smoothstep(connectionFieldAgeRef.current, 0.04, 1);
+
+      for (let index = 0; index < activeArrayLength; index += 3) {
+        const pointIndex = index / 3;
+        const baseX = cloud.originalPositions[index];
+        const baseY = cloud.originalPositions[index + 1];
+        const baseZ = cloud.originalPositions[index + 2];
+        const toAnchorX = anchorX - baseX;
+        const toAnchorY = anchorY - baseY;
+        const toAnchorZ = anchorZ - baseZ;
+        const toAnchorLength = Math.hypot(toAnchorX, toAnchorY, toAnchorZ) || 1;
+        const dirX = toAnchorX / toAnchorLength;
+        const dirY = toAnchorY / toAnchorLength;
+        const dirZ = toAnchorZ / toAnchorLength;
+        const radialX = baseX - center.x;
+        const radialY = baseY - center.y;
+        const radialZ = baseZ - center.z;
+        const tangentX = dirY * radialZ - dirZ * radialY;
+        const tangentY = dirZ * radialX - dirX * radialZ;
+        const tangentZ = dirX * radialY - dirY * radialX;
+        const tangentLength = Math.hypot(tangentX, tangentY, tangentZ) || 1;
+        const lane = 0.62 + ((pointIndex * 17) % 37) / 37 * 0.58;
+        const directionWave = 0.42 + Math.sin(time * 1.15 - toAnchorLength * 2.1 + pointIndex * 0.004) * 0.28;
+        const tangentWave = Math.sin(time * 0.72 + pointIndex * 0.013);
+        const distanceFalloff = Math.min(1, Math.max(0.28, toAnchorLength / Math.max(boundsMax * 0.9, 0.001)));
+        const alignPull = Math.min(toAnchorLength * 0.012, pullLimit) * lane * distanceFalloff * directionWave;
+        const rotatePull = rotationLimit * tangentWave * lane * (0.35 + interaction.speed * 0.35);
+        const normalizedY = (baseY - cloud.bounds.min.y) / Math.max(boundsSize.y, 0.001);
+        const applianceWeight = THREE.MathUtils.smoothstep(normalizedY, 0.5, 0.78);
+        const groupX = Math.max(0, Math.min(3, Math.floor(((baseX - cloud.bounds.min.x) / Math.max(boundsSize.x, 0.001)) * 4)));
+        const groupZ = Math.max(0, Math.min(3, Math.floor(((baseZ - cloud.bounds.min.z) / Math.max(boundsSize.z, 0.001)) * 4)));
+        const groupSeed = ((groupX * 13 + groupZ * 17) % 29) / 29;
+        const groupFloat = THREE.MathUtils.smoothstep(floatProgress, groupSeed * 0.34, 1);
+        const hoverPhase = time * (0.7 + groupSeed * 0.22) + groupSeed * 9.7;
+        const hoverLift = boundsMax * (0.045 + groupSeed * 0.018) * applianceWeight * groupFloat;
+        const hoverDrift = boundsMax * 0.006 * applianceWeight * groupFloat;
+        const fieldActive = connectionFieldAgeRef.current > 0.01;
+        const targetX = fieldActive ? baseX + dirX * alignPull + (tangentX / tangentLength) * rotatePull + Math.sin(hoverPhase) * hoverDrift : baseX;
+        const targetY = fieldActive ? baseY + dirY * alignPull + (tangentY / tangentLength) * rotatePull + hoverLift + Math.cos(hoverPhase * 0.83) * hoverDrift * 0.85 : baseY;
+        const targetZ = fieldActive ? baseZ + dirZ * alignPull + (tangentZ / tangentLength) * rotatePull + Math.sin(hoverPhase * 0.61) * hoverDrift : baseZ;
+        const nextX = fieldActive ? targetX : baseX;
+        const nextY = fieldActive ? targetY : baseY;
+        const nextZ = fieldActive ? targetZ : baseZ;
+        const response = interaction.active ? Math.max(0.07, strength * 0.28) : Math.max(0.08, strength);
+
+        current[index] = THREE.MathUtils.lerp(current[index], nextX, response);
+        current[index + 1] = THREE.MathUtils.lerp(current[index + 1], nextY, response);
+        current[index + 2] = THREE.MathUtils.lerp(current[index + 2], nextZ, response);
+      }
+
+      positionAttribute.needsUpdate = true;
+    }
+
+    const connectionPositionAttribute = connectionGeometry.getAttribute("position") as THREE.BufferAttribute;
+    const connectionColorAttribute = connectionGeometry.getAttribute("color") as THREE.BufferAttribute;
+    if (showConnectionLines && alignmentStrengthRef.current > 0.02 && connectionFieldAgeRef.current > 0.02) {
+      const current = positionAttribute.array as Float32Array;
+      const sourceColorAttribute = cloud.geometry.getAttribute("color") as THREE.BufferAttribute;
+      const linePositions = connectionPositionAttribute.array as Float32Array;
+      const lineColors = connectionColorAttribute.array as Float32Array;
+      const fieldStrength = THREE.MathUtils.smoothstep(alignmentStrengthRef.current, 0.02, 0.95)
+        * THREE.MathUtils.smoothstep(connectionFieldAgeRef.current, 0, 1);
+      let activeLineCount = 0;
+
+      for (let lineIndex = 0; lineIndex < INTERACTION_CONNECTION_LINES; lineIndex += 1) {
+        const pointIndex = connectionLineIndices[lineIndex];
+        const sourceIndex = pointIndex * 3;
+        const targetIndex = activeLineCount * 6;
+        const sourceX = current[sourceIndex];
+        const sourceY = current[sourceIndex + 1];
+        const sourceZ = current[sourceIndex + 2];
+        const colorIndex = pointIndex * 3;
+        const anchorX = interactionTargetRef.current.x;
+        const anchorY = interactionTargetRef.current.y;
+        const anchorZ = interactionTargetRef.current.z;
+        const pulse = (Math.sin(state.clock.elapsedTime * 1.7 + lineIndex * 0.47) + 1) * 0.5;
+        const shimmer = (Math.sin(state.clock.elapsedTime * 3.4 + lineIndex * 1.91) + 1) * 0.5;
+        const lineLife = THREE.MathUtils.smoothstep(pulse, 0.32, 0.9) * (0.68 + shimmer * 0.24);
+        const emergenceDelay = (lineIndex % 37) / 37;
+        const emergence = THREE.MathUtils.smoothstep(connectionFieldAgeRef.current, emergenceDelay * 0.42, 1);
+        const lineLengthRatio = fieldStrength * lineLife * emergence;
+
+        if (lineLengthRatio < 0.12) continue;
+
+        const endX = anchorX;
+        const endY = anchorY;
+        const endZ = anchorZ;
+
+        linePositions[targetIndex] = sourceX;
+        linePositions[targetIndex + 1] = sourceY;
+        linePositions[targetIndex + 2] = sourceZ;
+        linePositions[targetIndex + 3] = endX;
+        linePositions[targetIndex + 4] = endY;
+        linePositions[targetIndex + 5] = endZ;
+        const colorBoost = 0.2 + shimmer * 0.16;
+        const sourceR = sourceColorAttribute.normalized ? sourceColorAttribute.array[colorIndex] / 255 : sourceColorAttribute.array[colorIndex];
+        const sourceG = sourceColorAttribute.normalized ? sourceColorAttribute.array[colorIndex + 1] / 255 : sourceColorAttribute.array[colorIndex + 1];
+        const sourceB = sourceColorAttribute.normalized ? sourceColorAttribute.array[colorIndex + 2] / 255 : sourceColorAttribute.array[colorIndex + 2];
+        const lineR = THREE.MathUtils.lerp(sourceR, 1, colorBoost);
+        const lineG = THREE.MathUtils.lerp(sourceG, 1, colorBoost);
+        const lineB = THREE.MathUtils.lerp(sourceB, 1, colorBoost);
+
+        lineColors[targetIndex] = lineR;
+        lineColors[targetIndex + 1] = lineG;
+        lineColors[targetIndex + 2] = lineB;
+        lineColors[targetIndex + 3] = lineR;
+        lineColors[targetIndex + 4] = lineG;
+        lineColors[targetIndex + 5] = lineB;
+        activeLineCount += 1;
+      }
+
+      connectionGeometry.setDrawRange(0, activeLineCount * 2);
+      connectionPositionAttribute.needsUpdate = true;
+      connectionColorAttribute.needsUpdate = true;
+    } else {
+      connectionGeometry.setDrawRange(0, 0);
+    }
+
+    if (floatingLayer && rotationRef.current) {
+      const layerDelay = Math.min(0.32, floatingLayerIndex * 0.14);
+      const layerAge = Math.max(0, connectionFieldAgeRef.current - layerDelay);
+      const floatProgress = THREE.MathUtils.smoothstep(layerAge, 0.04, 1);
+      const time = state.clock.elapsedTime;
+      const lift = 0.42 * floatProgress;
+      const drift = 0.035 * floatProgress;
+      const directionX = THREE.MathUtils.clamp(interaction.velocityX * 42, -1, 1);
+      const directionY = THREE.MathUtils.clamp(interaction.velocityY * 42, -1, 1);
+      const anchorDirectionX = interaction.active
+        ? THREE.MathUtils.clamp((interactionTargetRef.current.x - center.x) / Math.max(boundsSize.x * 0.38, 0.001), -1, 1)
+        : 0;
+      const anchorDirectionY = interaction.active
+        ? THREE.MathUtils.clamp((interactionTargetRef.current.y - center.y) / Math.max(boundsSize.y * 0.34, 0.001), -1, 1)
+        : 0;
+      const orientationResponse = floatProgress * (interaction.active ? 1 : 0);
+      const anchorDirectionZ = interaction.active
+        ? THREE.MathUtils.clamp((interactionTargetRef.current.z - center.z) / Math.max(boundsSize.z * 0.38, 0.001), -1, 1)
+        : 0;
+      const orbitPlaneLength = Math.hypot(anchorDirectionX, anchorDirectionZ) || 1;
+      const orbitTangentX = -anchorDirectionZ / orbitPlaneLength;
+      const orbitTangentZ = anchorDirectionX / orbitPlaneLength;
+      const orbitStrength = floatProgress * (interaction.active ? 1 : 0);
+      const orbitRadius = 0.125 * orbitStrength;
+
+      if (interaction.active) {
+        floatingOrbitPhaseRef.current += delta * (0.74 + interaction.speed * 0.1) * (0.4 + floatProgress * 0.6);
+      }
+
+      floatingOrbitTargetRef.current.set(
+        (orbitTangentX * Math.sin(floatingOrbitPhaseRef.current) + anchorDirectionX * Math.cos(floatingOrbitPhaseRef.current) * 0.62) * orbitRadius,
+        Math.sin(floatingOrbitPhaseRef.current * 0.82) * 0.032 * orbitStrength,
+        (orbitTangentZ * Math.sin(floatingOrbitPhaseRef.current) + anchorDirectionZ * Math.cos(floatingOrbitPhaseRef.current) * 0.62) * orbitRadius
+      );
+      floatingOrbitOffsetRef.current.lerp(floatingOrbitTargetRef.current, Math.min(1, delta * (interaction.active ? 2.4 : 2.8)));
+
+      const orbitYaw = Math.sin(floatingOrbitPhaseRef.current) * 0.26 * orbitStrength;
+      const orbitRoll = Math.cos(floatingOrbitPhaseRef.current * 0.82) * 0.08 * orbitStrength;
+      floatingRotationTargetRef.current.set(
+        THREE.MathUtils.clamp(-anchorDirectionY * 0.16 * orientationResponse, -0.18, 0.18),
+        THREE.MathUtils.clamp(anchorDirectionX * 0.62 * orientationResponse + orbitYaw, -0.72, 0.72),
+        orbitRoll
+      );
+
+      floatingPositionRef.current.set(
+        displayPosition[0] + Math.sin(time * 0.72) * drift + directionX * 0.018 * floatProgress + floatingOrbitOffsetRef.current.x,
+        displayPosition[1] + lift + Math.sin(time * 1.24) * 0.035 * floatProgress + floatingOrbitOffsetRef.current.y,
+        displayPosition[2] + Math.cos(time * 0.64) * drift * 0.75 + directionY * 0.01 * floatProgress + floatingOrbitOffsetRef.current.z
+      );
+      rotationRef.current.position.lerp(floatingPositionRef.current, Math.min(1, delta * 2.25));
+      floatingRotationOffsetRef.current.lerp(floatingRotationTargetRef.current, Math.min(1, delta * (interaction.active ? 3.4 : 2.6)));
+    }
+
     if (rotationRef.current) {
-      rotationRef.current.rotation.y += delta * settings.rotationSpeed;
+      autoRotationRef.current += delta * settings.rotationSpeed;
+      rotationRef.current.rotation.x = initialRotation[0] + viewTransformRef.current.rotationX + (floatingLayer ? floatingRotationOffsetRef.current.x : 0);
+      rotationRef.current.rotation.y = initialRotation[1] + autoRotationRef.current + viewTransformRef.current.rotationY + (floatingLayer ? floatingRotationOffsetRef.current.y : 0);
+      rotationRef.current.rotation.z = initialRotation[2] + (floatingLayer ? floatingRotationOffsetRef.current.z : 0);
     }
     if (materialRef.current) {
       const introSizeBoost = introProgress < 1 ? 1.8 - introProgress * 0.8 : 1;
       materialRef.current.size = settings.particleSize * introSizeBoost;
       materialRef.current.opacity = settings.colorIntensity * (0.35 + introProgress * 0.65);
+    }
+    if (connectionLineMaterialRef.current) {
+      connectionLineMaterialRef.current.opacity = Math.min(0.07, alignmentStrengthRef.current * connectionFieldAgeRef.current * 0.06);
     }
   });
 
@@ -550,22 +879,32 @@ function PointCloudPoints({
       ref={rotationRef}
       position={displayPosition}
       rotation={initialRotation}
-      scale={[cloud.scale * settings.spread, cloud.scale, cloud.scale * settings.spread]}
+      scale={[cloud.scale * settings.spread * viewZoom, cloud.scale * viewZoom, cloud.scale * settings.spread * viewZoom]}
     >
-      <group position={[-center.x, -center.y, -center.z]}>
+      <group ref={innerRef} position={[-center.x, -center.y, -center.z]}>
         <points geometry={cloud.geometry}>
           <pointsMaterial
-          ref={materialRef}
-          color="#ffffff"
-          size={settings.particleSize}
-          sizeAttenuation
-          transparent
-          opacity={settings.colorIntensity}
-          vertexColors
-          depthWrite={false}
-          blending={THREE.NormalBlending}
-        />
+            ref={materialRef}
+            color="#ffffff"
+            size={settings.particleSize}
+            sizeAttenuation
+            transparent
+            opacity={settings.colorIntensity}
+            vertexColors
+            depthWrite={false}
+            blending={THREE.NormalBlending}
+          />
         </points>
+        <lineSegments ref={connectionLineRef} geometry={connectionGeometry} frustumCulled={false}>
+          <lineBasicMaterial
+            ref={connectionLineMaterialRef}
+            transparent
+            opacity={0}
+            vertexColors
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </lineSegments>
       </group>
     </group>
   );
@@ -574,12 +913,56 @@ function PointCloudPoints({
 export function PointCloudModel({
   modelUrl,
   pointDataUrl,
+  floatingPointDataUrl,
+  floatingPointDataUrls = [],
   settings,
   maxDensity,
   displayPosition = [0.72, -0.08, 0],
   initialRotation = [0, 0, 0],
+  viewRotationX = 0,
+  viewRotationY = 0,
+  viewZoom = 1,
+  interactionPoint,
   introPaused = false
 }: PointCloudModelProps) {
+  const floatingUrls = [floatingPointDataUrl, ...floatingPointDataUrls].filter((url): url is string => Boolean(url));
+
+  if (pointDataUrl && floatingUrls.length > 0) {
+    return (
+      <>
+        <BakedPointCloudModel
+          pointDataUrl={pointDataUrl}
+          settings={settings}
+          displayPosition={displayPosition}
+          initialRotation={initialRotation}
+          viewRotationX={viewRotationX}
+          viewRotationY={viewRotationY}
+          viewZoom={viewZoom}
+          interactionPoint={interactionPoint}
+          showConnectionLines={false}
+          introPaused={introPaused}
+        />
+        {floatingUrls.map((floatingUrl, index) => (
+          <BakedPointCloudModel
+            key={floatingUrl}
+            pointDataUrl={floatingUrl}
+            settings={settings}
+            displayPosition={displayPosition}
+            initialRotation={initialRotation}
+            viewRotationX={viewRotationX}
+            viewRotationY={viewRotationY}
+            viewZoom={viewZoom}
+            interactionPoint={interactionPoint}
+            floatingLayer
+            floatingLayerIndex={index}
+            showConnectionLines
+            introPaused={introPaused}
+          />
+        ))}
+      </>
+    );
+  }
+
   if (pointDataUrl) {
     return (
       <BakedPointCloudModel
@@ -587,6 +970,11 @@ export function PointCloudModel({
         settings={settings}
         displayPosition={displayPosition}
         initialRotation={initialRotation}
+        viewRotationX={viewRotationX}
+        viewRotationY={viewRotationY}
+        viewZoom={viewZoom}
+        interactionPoint={interactionPoint}
+        showConnectionLines={false}
         introPaused={introPaused}
       />
     );
@@ -599,6 +987,10 @@ export function PointCloudModel({
       maxDensity={maxDensity}
       displayPosition={displayPosition}
       initialRotation={initialRotation}
+      viewRotationX={viewRotationX}
+      viewRotationY={viewRotationY}
+      viewZoom={viewZoom}
+      interactionPoint={interactionPoint}
       introPaused={introPaused}
     />
   );

@@ -1,0 +1,17 @@
+{
+  "pointCount": 70000,
+  "bounds": {
+    "min": [
+      12.710101079549275,
+      -3.7019473239779472,
+      -11.446439743041992
+    ],
+    "max": [
+      20.06922065750524,
+      3.6255153183864106,
+      -4.087317971896113
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_dressroom2.glb",
+  "sharedBoundsSource": "lg-model-dressroom2-points"
+}

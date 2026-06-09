@@ -1,0 +1,21 @@
+{
+  "pointCount": 340000,
+  "bounds": {
+    "min": [
+      -3.6696547223372447,
+      -3.741796553134918,
+      4.882174015045166
+    ],
+    "max": [
+      3.891121755398956,
+      2.6711077274230774,
+      13.008908109231959
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_PLANT2.glb",
+  "sharedBoundsSource": "lg-model-plant2-final-points",
+  "hemisphereVisibilityBoost": {
+    "sampleBoost": 6,
+    "brightness": 1.55
+  }
+}

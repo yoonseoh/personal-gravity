@@ -1,0 +1,17 @@
+{
+  "pointCount": 400000,
+  "bounds": {
+    "min": [
+      -3.4679978225570096,
+      -3.853902816772461,
+      4.588477058562068
+    ],
+    "max": [
+      3.891121755398956,
+      3.414934186592717,
+      12.241295786191046
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_20S2.glb",
+  "sharedBoundsSource": "lg-model-20s2-points"
+}

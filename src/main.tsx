@@ -17,6 +17,17 @@ export type ViewerSettings = {
   spread: number;
 };
 
+export type DetailInteractionPoint = {
+  active: boolean;
+  x: number;
+  y: number;
+  clientX: number;
+  clientY: number;
+  velocityX: number;
+  velocityY: number;
+  speed: number;
+};
+
 const MAX_DENSITY = 500_000;
 const ENTRY_LOADING_DURATION_MS = 5800;
 const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
@@ -42,6 +53,8 @@ type PlanetContent = {
   id: PlanetKey;
   modelUrl: string;
   pointDataUrl?: string;
+  floatingPointDataUrl?: string;
+  floatingPointDataUrls?: string[];
   entryLabel: string;
   title: string;
   description: string[];
@@ -54,7 +67,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   baby: {
     id: "baby",
     modelUrl: "models/lg-model-baby2.glb",
-    pointDataUrl: "models/lg-model-baby2-points",
+    pointDataUrl: "models/lg-model-baby2-base-points",
+    floatingPointDataUrl: "models/lg-model-baby2-appliances-points",
     entryLabel: "육아 부부",
     title: "육아 부부의 행성",
     description: [
@@ -70,7 +84,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   plant: {
     id: "plant",
     modelUrl: "models/lg-model-plant2.glb",
-    pointDataUrl: "models/lg-model-plant2-final-points",
+    pointDataUrl: "models/lg-model-plant2-base-points",
+    floatingPointDataUrl: "models/lg-model-plant2-appliances-points",
     entryLabel: "액티브 시니어 부부",
     title: "액티브 시니어 부부의 행성",
     description: [
@@ -87,7 +102,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   party: {
     id: "party",
     modelUrl: "models/lg-model-party.glb",
-    pointDataUrl: "models/lg-model-party-final-points",
+    pointDataUrl: "models/lg-model-party-base-points",
+    floatingPointDataUrl: "models/lg-model-party-appliances-points",
     entryLabel: "홈파티 부부",
     title: "홈파티 부부의 행성",
     description: [
@@ -103,7 +119,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   dress: {
     id: "dress",
     modelUrl: "models/lg-model-dressroom2.glb",
-    pointDataUrl: "models/lg-model-dressroom2-points",
+    pointDataUrl: "models/lg-model-dressroom2-base-points",
+    floatingPointDataUrl: "models/lg-model-dressroom2-appliances-points",
     entryLabel: "트렌드세터",
     title: "트렌드세터의 행성",
     description: [
@@ -119,7 +136,12 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   bath: {
     id: "bath",
     modelUrl: "models/lg-model-bathroom2.glb",
-    pointDataUrl: "models/lg-model-bathroom2-points",
+    pointDataUrl: "models/lg-model-bathroom2-base-points",
+    floatingPointDataUrls: [
+      "models/lg-model-bathroom2-appliance-1-points",
+      "models/lg-model-bathroom2-appliance-2-points",
+      "models/lg-model-bathroom2-appliance-3-points"
+    ],
     entryLabel: "홈 스파 매니아",
     title: "홈 스파 매니아의 행성",
     description: [
@@ -135,7 +157,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   cats: {
     id: "cats",
     modelUrl: "models/lg-model-cat2.glb",
-    pointDataUrl: "models/lg-model-cat2-points",
+    pointDataUrl: "models/lg-model-cat2-base-points",
+    floatingPointDataUrl: "models/lg-model-cat2-appliances-points",
     entryLabel: "반려묘 집사",
     title: "반려묘 집사의 행성",
     description: [
@@ -151,7 +174,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   "20s": {
     id: "20s",
     modelUrl: "models/lg-model-20s2.glb",
-    pointDataUrl: "models/lg-model-20s2-points",
+    pointDataUrl: "models/lg-model-20s2-base-points",
+    floatingPointDataUrl: "models/lg-model-20s2-appliances-points",
     entryLabel: "영화·게임 러버",
     title: "영화·게임 러버의 행성",
     description: [
@@ -195,10 +219,15 @@ function preloadPointData() {
   const urls = new Set<string>();
 
   PLANET_ORDER.forEach((key) => {
-    const pointDataUrl = PLANETS[key].pointDataUrl;
-    if (!pointDataUrl) return;
-    urls.add(assetUrl(`${pointDataUrl}.json`));
-    urls.add(assetUrl(`${pointDataUrl}.bin`));
+    const pointDataUrls = [
+      PLANETS[key].pointDataUrl,
+      PLANETS[key].floatingPointDataUrl,
+      ...(PLANETS[key].floatingPointDataUrls ?? [])
+    ].filter((url): url is string => Boolean(url));
+    pointDataUrls.forEach((pointDataUrl) => {
+      urls.add(assetUrl(`${pointDataUrl}.json`));
+      urls.add(assetUrl(`${pointDataUrl}.bin`));
+    });
   });
 
   urls.forEach((url) => {
@@ -288,13 +317,27 @@ function Scene({
   settings,
   modelUrl,
   pointDataUrl,
+  floatingPointDataUrl,
+  floatingPointDataUrls,
   initialRotation,
+  viewRotationX = 0,
+  viewRotationY = 0,
+  viewZoom = 1,
+  interactionPoint,
+  fixedCamera = false,
   introPaused = false
 }: {
   settings: ViewerSettings;
   modelUrl: string;
   pointDataUrl?: string;
+  floatingPointDataUrl?: string;
+  floatingPointDataUrls?: string[];
   initialRotation: [number, number, number];
+  viewRotationX?: number;
+  viewRotationY?: number;
+  viewZoom?: number;
+  interactionPoint?: DetailInteractionPoint;
+  fixedCamera?: boolean;
   introPaused?: boolean;
 }) {
   return (
@@ -312,10 +355,16 @@ function Scene({
         <PointCloudModel
           modelUrl={modelUrl}
           pointDataUrl={pointDataUrl}
+          floatingPointDataUrl={floatingPointDataUrl}
+          floatingPointDataUrls={floatingPointDataUrls}
           settings={settings}
           maxDensity={MAX_DENSITY}
           displayPosition={MODEL_DISPLAY_POSITION}
           initialRotation={initialRotation}
+          viewRotationX={viewRotationX}
+          viewRotationY={viewRotationY}
+          viewZoom={viewZoom}
+          interactionPoint={interactionPoint}
           introPaused={introPaused}
         />
       </Suspense>
@@ -327,6 +376,7 @@ function Scene({
         dampingFactor={0.06}
         minDistance={1.2}
         maxDistance={9}
+        enabled={!fixedCamera}
         enablePan={false}
         autoRotate={false}
         touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
@@ -1017,6 +1067,13 @@ function DetailPage({
 }) {
   const settingsSnapshot = useMemo(() => settings, [settings]);
   const [stageScale, setStageScale] = useState(1);
+  const hasTouchGravityInteraction = Boolean(planet.floatingPointDataUrl || planet.floatingPointDataUrls?.length) && !isTransitioning;
+  const [interactionPoint, setInteractionPoint] = useState<DetailInteractionPoint>({ active: false, x: 0, y: 0, clientX: 0, clientY: 0, velocityX: 0, velocityY: 0, speed: 0 });
+  const [detailView, setDetailView] = useState({ rotationX: 0, rotationY: 0, zoom: 1 });
+  const interactionPointerIdRef = useRef<number | null>(null);
+  const lastInteractionRef = useRef({ clientX: 0, clientY: 0 });
+  const activePointersRef = useRef(new Map<number, { clientX: number; clientY: number }>());
+  const lastGestureRef = useRef({ centerX: 0, centerY: 0, distance: 0 });
 
   useEffect(() => {
     const syncScale = () => setStageScale(getStageScale());
@@ -1026,16 +1083,139 @@ function DetailPage({
     return () => window.removeEventListener("resize", syncScale);
   }, []);
 
+  const getInteractionPointFromClient = (clientX: number, clientY: number, includeVelocity = true): DetailInteractionPoint => {
+    const deltaX = includeVelocity ? clientX - lastInteractionRef.current.clientX : 0;
+    const deltaY = includeVelocity ? clientY - lastInteractionRef.current.clientY : 0;
+    const speed = Math.min(1, Math.hypot(deltaX, deltaY) / 58);
+    const sceneRect = document.querySelector(".scene")?.getBoundingClientRect();
+    const ndcX = sceneRect
+      ? ((clientX - sceneRect.left) / Math.max(sceneRect.width, 1) - 0.5) * 2
+      : (clientX / window.innerWidth - 0.5) * 2;
+    const ndcY = sceneRect
+      ? (0.5 - (clientY - sceneRect.top) / Math.max(sceneRect.height, 1)) * 2
+      : (0.5 - clientY / window.innerHeight) * 2;
+
+    lastInteractionRef.current = {
+      clientX,
+      clientY
+    };
+
+    return {
+      active: true,
+      x: ndcX,
+      y: ndcY,
+      clientX,
+      clientY,
+      velocityX: deltaX / Math.max(window.innerWidth, 1),
+      velocityY: deltaY / Math.max(window.innerHeight, 1),
+      speed
+    };
+  };
+
+  const getInteractionPoint = (event: React.PointerEvent<HTMLElement>, includeVelocity = true): DetailInteractionPoint => {
+    return getInteractionPointFromClient(event.clientX, event.clientY, includeVelocity);
+  };
+
+  const getPointerGesture = () => {
+    const pointers = Array.from(activePointersRef.current.values());
+    if (pointers.length === 0) return null;
+
+    const centerX = pointers.reduce((sum, pointer) => sum + pointer.clientX, 0) / pointers.length;
+    const centerY = pointers.reduce((sum, pointer) => sum + pointer.clientY, 0) / pointers.length;
+    const distance = pointers.length >= 2
+      ? Math.hypot(pointers[0].clientX - pointers[1].clientX, pointers[0].clientY - pointers[1].clientY)
+      : 0;
+
+    return { centerX, centerY, distance, count: pointers.length };
+  };
+
+  const handleInteractionStart = (event: React.PointerEvent<HTMLElement>) => {
+    if (!hasTouchGravityInteraction || (event.target as Element).closest("button, input, label")) return;
+    activePointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    const gesture = getPointerGesture();
+    if (gesture) {
+      lastGestureRef.current = { centerX: gesture.centerX, centerY: gesture.centerY, distance: gesture.distance };
+      interactionPointerIdRef.current = event.pointerId;
+      setInteractionPoint(getInteractionPointFromClient(gesture.centerX, gesture.centerY, false));
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleInteractionMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!hasTouchGravityInteraction || !activePointersRef.current.has(event.pointerId)) return;
+    activePointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    const gesture = getPointerGesture();
+    if (!gesture) return;
+
+    const deltaX = gesture.centerX - lastGestureRef.current.centerX;
+    const deltaY = gesture.centerY - lastGestureRef.current.centerY;
+    const nextInteractionPoint = getInteractionPointFromClient(gesture.centerX, gesture.centerY);
+
+    setDetailView((current) => {
+      const nextZoom = gesture.count >= 2 && lastGestureRef.current.distance > 0
+        ? THREE.MathUtils.clamp(current.zoom * Math.pow(gesture.distance / lastGestureRef.current.distance, 0.72), 0.72, 1.62)
+        : current.zoom;
+
+      return {
+        rotationX: THREE.MathUtils.clamp(current.rotationX + deltaY * 0.0029, -0.38, 0.38),
+        rotationY: current.rotationY + deltaX * 0.0042,
+        zoom: nextZoom
+      };
+    });
+    lastGestureRef.current = { centerX: gesture.centerX, centerY: gesture.centerY, distance: gesture.distance };
+    setInteractionPoint(nextInteractionPoint);
+  };
+
+  const handleInteractionEnd = (event: React.PointerEvent<HTMLElement>) => {
+    if (!hasTouchGravityInteraction || !activePointersRef.current.has(event.pointerId)) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    activePointersRef.current.delete(event.pointerId);
+    const gesture = getPointerGesture();
+    if (gesture) {
+      lastGestureRef.current = { centerX: gesture.centerX, centerY: gesture.centerY, distance: gesture.distance };
+      interactionPointerIdRef.current = activePointersRef.current.keys().next().value ?? null;
+      setInteractionPoint(getInteractionPointFromClient(gesture.centerX, gesture.centerY, false));
+    } else {
+      interactionPointerIdRef.current = null;
+      setInteractionPoint((current) => ({ ...current, active: false }));
+    }
+  };
+
+  const handleInteractionWheel = (event: React.WheelEvent<HTMLElement>) => {
+    if (!hasTouchGravityInteraction) return;
+    event.preventDefault();
+    const zoomDelta = Math.exp(-event.deltaY * 0.0009);
+    setDetailView((current) => ({
+      ...current,
+      zoom: THREE.MathUtils.clamp(current.zoom * zoomDelta, 0.72, 1.62)
+    }));
+  };
+
   return (
     <div
-      className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}`}
+      className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}${hasTouchGravityInteraction ? " is-plant-interactive" : ""}`}
       style={{ "--stage-scale": stageScale } as React.CSSProperties}
+      onPointerDown={handleInteractionStart}
+      onPointerMove={handleInteractionMove}
+      onPointerUp={handleInteractionEnd}
+      onPointerCancel={handleInteractionEnd}
+      onPointerLeave={handleInteractionEnd}
+      onWheel={handleInteractionWheel}
     >
       <Scene
         settings={settingsSnapshot}
         modelUrl={assetUrl(planet.modelUrl)}
         pointDataUrl={planet.pointDataUrl ? assetUrl(planet.pointDataUrl) : undefined}
+        floatingPointDataUrl={planet.floatingPointDataUrl ? assetUrl(planet.floatingPointDataUrl) : undefined}
+        floatingPointDataUrls={planet.floatingPointDataUrls?.map((url) => assetUrl(url))}
         initialRotation={DETAIL_INITIAL_ROTATIONS[planet.id]}
+        viewRotationX={hasTouchGravityInteraction ? detailView.rotationX : 0}
+        viewRotationY={hasTouchGravityInteraction ? detailView.rotationY : 0}
+        viewZoom={hasTouchGravityInteraction ? detailView.zoom : 1}
+        interactionPoint={hasTouchGravityInteraction ? interactionPoint : undefined}
+        fixedCamera={hasTouchGravityInteraction}
         introPaused={isTransitioning}
       />
       {!isTransitioning && (
@@ -1046,7 +1226,7 @@ function DetailPage({
             onPreviousPlanet={onPreviousPlanet}
             onNextPlanet={onNextPlanet}
           />
-          <ParticleControls settings={settings} onChange={onSettingsChange} />
+          {!hasTouchGravityInteraction && <ParticleControls settings={settings} onChange={onSettingsChange} />}
         </>
       )}
       {!planet.pointDataUrl && <Loader />}
@@ -1085,8 +1265,6 @@ function GravityInterface({
       <button className="arrow arrow--right" type="button" aria-label="Next planet" onClick={onNextPlanet}>
         →
       </button>
-
-      <p className="parameter-note">슬라이더를 움직여<br />입자와 흐름을 조절해보세요.</p>
 
       <div className="bottom-guide">
         <p>Smart Home Orbit</p>
