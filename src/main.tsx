@@ -68,7 +68,11 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "baby",
     modelUrl: "models/lg-model-baby2.glb",
     pointDataUrl: "models/lg-model-baby2-base-points",
-    floatingPointDataUrl: "models/lg-model-baby2-appliances-points",
+    floatingPointDataUrls: [
+      "models/lg-model-baby2-vacuum-points",
+      "models/lg-model-baby2-tv-points",
+      "models/lg-model-baby2-air-points"
+    ],
     entryLabel: "육아 부부",
     title: "육아 부부의 행성",
     description: [
@@ -879,14 +883,14 @@ function EntryParticleLoader() {
       { x: -0.78, y: -1.08, z: -0.36 },
       { x: -0.38, y: 0.22, z: 1.34 }
     ];
-    const particles = Array.from({ length: 96 }, (_, index) => {
+    const particles = Array.from({ length: 112 }, (_, index) => {
       const seed = Math.sin(index * 12.9898) * 43758.5453;
       const noise = seed - Math.floor(seed);
       const planeIndex = index % orbitPlanes.length;
 
       return {
-        angle: (index / 96) * Math.PI * 2,
-        alpha: 0.78 + (index % 6) * 0.04,
+        angle: (index / 112) * Math.PI * 2,
+        alpha: 0.86 + (index % 6) * 0.035,
         orbitCosX: Math.cos(orbitPlanes[planeIndex].x),
         orbitCosY: Math.cos(orbitPlanes[planeIndex].y),
         orbitCosZ: Math.cos(orbitPlanes[planeIndex].z),
@@ -896,7 +900,7 @@ function EntryParticleLoader() {
         planeIndex,
         phase: noise * Math.PI * 2,
         radius: 32 + noise * 7.5,
-        size: 0.34 + (index % 4) * 0.075,
+        size: 0.42 + (index % 4) * 0.085,
         speed: 0.22 + (index % 13) * 0.008,
         wobble: 1.8 + noise * 4.6
       };
@@ -909,7 +913,7 @@ function EntryParticleLoader() {
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      pixelRatio = 1;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
       width = Math.max(1, rect.width);
       height = Math.max(1, rect.height);
       canvas.width = Math.floor(width * pixelRatio);
@@ -918,7 +922,7 @@ function EntryParticleLoader() {
     };
 
     const render = (now: number) => {
-      if (now - lastRender < 1000 / 24) {
+      if (now - lastRender < 1000 / 30) {
         animationFrame = requestAnimationFrame(render);
         return;
       }
@@ -997,19 +1001,25 @@ function EntryParticleLoader() {
         const projected = projectPoint(global.x, global.y, global.z);
         const previous = projectPoint(previousGlobal.x, previousGlobal.y, previousGlobal.z);
         const depthNormal = Math.max(0, Math.min(1, (projected.z + 46) / 92));
-        const size = Math.max(0.32, particle.size * projected.depth * (0.64 + depthNormal * 0.82));
-        const alpha = Math.min(1, particle.alpha * (0.84 + wave * 0.18) * (0.62 + depthNormal * 0.58));
+        const size = Math.max(0.5, particle.size * projected.depth * (0.82 + depthNormal * 1.02));
+        const alpha = Math.min(1, particle.alpha * (0.98 + wave * 0.22) * (0.78 + depthNormal * 0.62));
 
-        if (index % 5 === 0) {
+        if (index % 4 === 0) {
           context.beginPath();
           context.moveTo(previous.x, previous.y);
           context.lineTo(projected.x, projected.y);
-          context.strokeStyle = `rgba(210, 232, 255, ${alpha * 0.24})`;
-          context.lineWidth = Math.max(0.14, size * 0.3);
+          context.strokeStyle = `rgba(220, 238, 255, ${alpha * 0.38})`;
+          context.lineWidth = Math.max(0.2, size * 0.42);
           context.stroke();
         }
 
-        context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        if (index % 3 === 0) {
+          const hazeSize = size * 2.1;
+          context.fillStyle = `rgba(184, 220, 255, ${alpha * 0.16})`;
+          context.fillRect(projected.x - hazeSize / 2, projected.y - hazeSize / 2, hazeSize, hazeSize);
+        }
+
+        context.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.08)})`;
         context.fillRect(projected.x - size / 2, projected.y - size / 2, size, size);
       });
 
@@ -1153,7 +1163,7 @@ function DetailPage({
 
     setDetailView((current) => {
       const nextZoom = gesture.count >= 2 && lastGestureRef.current.distance > 0
-        ? THREE.MathUtils.clamp(current.zoom * Math.pow(gesture.distance / lastGestureRef.current.distance, 0.72), 0.72, 1.62)
+        ? THREE.MathUtils.clamp(current.zoom * Math.pow(gesture.distance / lastGestureRef.current.distance, 1.18), 0.62, 1.86)
         : current.zoom;
 
       return {
@@ -1186,10 +1196,10 @@ function DetailPage({
   const handleInteractionWheel = (event: React.WheelEvent<HTMLElement>) => {
     if (!hasTouchGravityInteraction) return;
     event.preventDefault();
-    const zoomDelta = Math.exp(-event.deltaY * 0.0009);
+    const zoomDelta = Math.exp(-event.deltaY * 0.0016);
     setDetailView((current) => ({
       ...current,
-      zoom: THREE.MathUtils.clamp(current.zoom * zoomDelta, 0.72, 1.62)
+      zoom: THREE.MathUtils.clamp(current.zoom * zoomDelta, 0.62, 1.86)
     }));
   };
 
@@ -1245,11 +1255,13 @@ function GravityInterface({
   onPreviousPlanet: () => void;
   onNextPlanet: () => void;
 }) {
+  const productGridWidth = planet.products.length * 132 + Math.max(0, planet.products.length - 1) * 18;
+
   return (
     <section className="gravity-frame" aria-label="Personal Gravity">
       <div className="title-copy">
         <PersonalGravityBrand />
-        <p>행성을 움직이며 구경해보세요.</p>
+        <p>화면을 꾹 눌러, 가전이 반응하는 순간을 느껴보세요.</p>
       </div>
 
       <article className="description">
@@ -1266,7 +1278,7 @@ function GravityInterface({
         →
       </button>
 
-      <div className="bottom-guide">
+      <div className="bottom-guide" style={{ "--product-grid-width": `${productGridWidth}px` } as React.CSSProperties}>
         <p>Smart Home Orbit</p>
         <div className="product-links" aria-label="Product list">
           {planet.products.map((product, index) => (

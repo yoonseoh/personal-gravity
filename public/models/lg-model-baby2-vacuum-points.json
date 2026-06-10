@@ -1,0 +1,32 @@
+{
+  "pointCount": 26257,
+  "bounds": {
+    "min": [
+      -3.4679978225570096,
+      -3.6795620918273926,
+      4.882174015045166
+    ],
+    "max": [
+      3.891121755398956,
+      2.8369895272447394,
+      12.241295786191046
+    ]
+  },
+  "source": "/Users/ohyunseo/Downloads/LG model_BABY2.glb",
+  "sharedBoundsSource": "lg-model-baby2-points",
+  "applianceSelection": "LG A9 vaccum, LG air, LG_OLED_TV, TVStand, TV_Grill_*",
+  "removeBox": {
+    "min": [
+      2.15,
+      0.15,
+      10.2
+    ],
+    "max": [
+      2.86,
+      2.15,
+      10.95
+    ],
+    "removedCount": 64847,
+    "sourcePointCount": 91104
+  }
+}

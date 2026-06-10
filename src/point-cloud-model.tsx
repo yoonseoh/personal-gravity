@@ -338,22 +338,106 @@ type BakedPointCloudMetadata = {
   };
 };
 
-function makeBakedPointCloud(metadata: BakedPointCloudMetadata, data: ArrayBuffer): SampledCloud {
-  const pointCount = metadata.pointCount;
+type BakedPointCloudOptions = {
+  lowerHemisphereColorScale?: number;
+  lowerHemisphereKeepRatio?: number;
+};
+
+function getLowerHemisphereWeight(positionIndex: number, positions: Float32Array, bounds: THREE.Box3, size: THREE.Vector3, center: THREE.Vector3) {
+  const halfX = Math.max(size.x * 0.5, 0.001);
+  const halfZ = Math.max(size.z * 0.5, 0.001);
+  const height = Math.max(size.y, 0.001);
+  const yNormal = (positions[positionIndex + 1] - bounds.min.y) / height;
+  const radiusNormal = Math.hypot((positions[positionIndex] - center.x) / halfX, (positions[positionIndex + 2] - center.z) / halfZ);
+  const lowerWeight = 1 - THREE.MathUtils.smoothstep(yNormal, 0.18, 0.58);
+  const broadWeight = THREE.MathUtils.smoothstep(radiusNormal, 0.24, 0.88);
+
+  return lowerWeight * (0.86 + broadWeight * 0.14);
+}
+
+function softenLowerHemisphere(
+  positions: Float32Array,
+  colors: Uint8Array,
+  bounds: THREE.Box3,
+  colorScale: number
+) {
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const lowerHemisphereWeight = getLowerHemisphereWeight(index, positions, bounds, size, center);
+    const dim = 1 - lowerHemisphereWeight * (1 - colorScale);
+
+    colors[index] = Math.round(colors[index] * dim);
+    colors[index + 1] = Math.round(colors[index + 1] * dim);
+    colors[index + 2] = Math.round(colors[index + 2] * dim);
+  }
+}
+
+function thinLowerHemisphere(
+  positions: Float32Array,
+  colors: Uint8Array,
+  bounds: THREE.Box3,
+  keepRatio: number
+) {
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+  const nextPositions = new Float32Array(positions.length);
+  const nextColors = new Uint8Array(colors.length);
+  let writeIndex = 0;
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const pointIndex = index / 3;
+    const lowerHemisphereWeight = getLowerHemisphereWeight(index, positions, bounds, size, center);
+    const keepProbability = 1 - lowerHemisphereWeight * (1 - keepRatio);
+    const seed = Math.sin(pointIndex * 12.9898 + 78.233) * 43758.5453;
+    const random = seed - Math.floor(seed);
+
+    if (random > keepProbability) continue;
+
+    nextPositions[writeIndex] = positions[index];
+    nextPositions[writeIndex + 1] = positions[index + 1];
+    nextPositions[writeIndex + 2] = positions[index + 2];
+    nextColors[writeIndex] = colors[index];
+    nextColors[writeIndex + 1] = colors[index + 1];
+    nextColors[writeIndex + 2] = colors[index + 2];
+    writeIndex += 3;
+  }
+
+  return {
+    colors: nextColors.slice(0, writeIndex),
+    pointCount: writeIndex / 3,
+    positions: nextPositions.slice(0, writeIndex)
+  };
+}
+
+function makeBakedPointCloud(metadata: BakedPointCloudMetadata, data: ArrayBuffer, options: BakedPointCloudOptions = {}): SampledCloud {
+  let pointCount = metadata.pointCount;
   const positionByteLength = pointCount * 3 * Float32Array.BYTES_PER_ELEMENT;
-  const positions = new Float32Array(data, 0, pointCount * 3);
-  const colors = new Uint8Array(data, positionByteLength, pointCount * 3);
+  let positions = new Float32Array(data, 0, pointCount * 3);
+  let colors = new Uint8Array(data.slice(positionByteLength, positionByteLength + pointCount * 3));
+  const bounds = new THREE.Box3(
+    new THREE.Vector3(...metadata.bounds.min),
+    new THREE.Vector3(...metadata.bounds.max)
+  );
+
+  if (options.lowerHemisphereKeepRatio !== undefined) {
+    const thinned = thinLowerHemisphere(positions, colors, bounds, options.lowerHemisphereKeepRatio);
+    positions = thinned.positions;
+    colors = thinned.colors;
+    pointCount = thinned.pointCount;
+  }
+
+  if (options.lowerHemisphereColorScale !== undefined) {
+    softenLowerHemisphere(positions, colors, bounds, options.lowerHemisphereColorScale);
+  }
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.Uint8BufferAttribute(colors, 3, true));
   geometry.setDrawRange(0, pointCount);
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-
-  const bounds = new THREE.Box3(
-    new THREE.Vector3(...metadata.bounds.min),
-    new THREE.Vector3(...metadata.bounds.max)
-  );
   const size = bounds.getSize(new THREE.Vector3());
   const maxDimension = Math.max(size.x, size.y, size.z, 1);
   const center = bounds.getCenter(new THREE.Vector3());
@@ -485,7 +569,11 @@ function BakedPointCloudModel({
       })
     ]).then(([metadata, data]) => {
       if (abortController.signal.aborted) return;
-      const nextCloud = makeBakedPointCloud(metadata, data);
+      const shouldSoftenBabyBase = pointDataUrl.includes("lg-model-baby2-base-points");
+      const nextCloud = makeBakedPointCloud(metadata, data, {
+        lowerHemisphereColorScale: shouldSoftenBabyBase ? 0.28 : undefined,
+        lowerHemisphereKeepRatio: shouldSoftenBabyBase ? 0.02 : undefined
+      });
       disposedCloud = nextCloud;
       setCloud(nextCloud);
     }).catch((error) => {
@@ -565,6 +653,7 @@ function PointCloudPoints({
   const floatingOrbitTargetRef = useRef(new THREE.Vector3());
   const floatingOrbitPhaseRef = useRef(0);
   const viewTransformRef = useRef({ rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom });
+  const smoothedViewTransformRef = useRef({ rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom });
   const center = useMemo(() => cloud.bounds.getCenter(new THREE.Vector3()), [cloud]);
   const boundsSize = useMemo(() => cloud.bounds.getSize(new THREE.Vector3()), [cloud]);
   const connectionGeometry = useMemo(() => {
@@ -611,6 +700,7 @@ function PointCloudPoints({
     floatingOrbitOffsetRef.current.set(0, 0, 0);
     floatingOrbitTargetRef.current.set(0, 0, 0);
     floatingOrbitPhaseRef.current = floatingLayerIndex * 2.15;
+    smoothedViewTransformRef.current = { rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom };
     const positionAttribute = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
     positionAttribute.array.set(cloud.introPositions);
     positionAttribute.needsUpdate = true;
@@ -859,10 +949,19 @@ function PointCloudPoints({
     }
 
     if (rotationRef.current) {
+      const viewTarget = viewTransformRef.current;
+      const viewSmooth = smoothedViewTransformRef.current;
+      const viewResponse = Math.min(1, delta * 6.4);
+
+      viewSmooth.rotationX = THREE.MathUtils.lerp(viewSmooth.rotationX, viewTarget.rotationX, viewResponse);
+      viewSmooth.rotationY = THREE.MathUtils.lerp(viewSmooth.rotationY, viewTarget.rotationY, viewResponse);
+      viewSmooth.zoom = THREE.MathUtils.lerp(viewSmooth.zoom, viewTarget.zoom, viewResponse);
+
       autoRotationRef.current += delta * settings.rotationSpeed;
-      rotationRef.current.rotation.x = initialRotation[0] + viewTransformRef.current.rotationX + (floatingLayer ? floatingRotationOffsetRef.current.x : 0);
-      rotationRef.current.rotation.y = initialRotation[1] + autoRotationRef.current + viewTransformRef.current.rotationY + (floatingLayer ? floatingRotationOffsetRef.current.y : 0);
+      rotationRef.current.rotation.x = initialRotation[0] + viewSmooth.rotationX + (floatingLayer ? floatingRotationOffsetRef.current.x : 0);
+      rotationRef.current.rotation.y = initialRotation[1] + autoRotationRef.current + viewSmooth.rotationY + (floatingLayer ? floatingRotationOffsetRef.current.y : 0);
       rotationRef.current.rotation.z = initialRotation[2] + (floatingLayer ? floatingRotationOffsetRef.current.z : 0);
+      rotationRef.current.scale.set(cloud.scale * settings.spread * viewSmooth.zoom, cloud.scale * viewSmooth.zoom, cloud.scale * settings.spread * viewSmooth.zoom);
     }
     if (materialRef.current) {
       const introSizeBoost = introProgress < 1 ? 1.8 - introProgress * 0.8 : 1;
@@ -879,7 +978,7 @@ function PointCloudPoints({
       ref={rotationRef}
       position={displayPosition}
       rotation={initialRotation}
-      scale={[cloud.scale * settings.spread * viewZoom, cloud.scale * viewZoom, cloud.scale * settings.spread * viewZoom]}
+      scale={[cloud.scale * settings.spread * smoothedViewTransformRef.current.zoom, cloud.scale * smoothedViewTransformRef.current.zoom, cloud.scale * settings.spread * smoothedViewTransformRef.current.zoom]}
     >
       <group ref={innerRef} position={[-center.x, -center.y, -center.z]}>
         <points geometry={cloud.geometry}>
