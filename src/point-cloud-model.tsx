@@ -648,6 +648,7 @@ function PointCloudPoints({
   const autoRotationRef = useRef(0);
   const interactionRef = useRef<DetailInteractionPoint>({ active: false, x: 0, y: 0, clientX: 0, clientY: 0, velocityX: 0, velocityY: 0, speed: 0 });
   const alignmentStrengthRef = useRef(0);
+  const touchLightStrengthRef = useRef(0);
   const connectionFieldAgeRef = useRef(0);
   const interactionTargetRef = useRef(new THREE.Vector3());
   const floatingPositionRef = useRef(new THREE.Vector3(...displayPosition));
@@ -660,6 +661,8 @@ function PointCloudPoints({
   const smoothedViewTransformRef = useRef({ rotationX: viewRotationX, rotationY: viewRotationY, zoom: viewZoom });
   const center = useMemo(() => cloud.bounds.getCenter(new THREE.Vector3()), [cloud]);
   const boundsSize = useMemo(() => cloud.bounds.getSize(new THREE.Vector3()), [cloud]);
+  const neutralParticleColor = useMemo(() => new THREE.Color("#ffffff"), []);
+  const warmParticleColor = useMemo(() => new THREE.Color("#fff2dd"), []);
   const connectionGeometry = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(INTERACTION_CONNECTION_LINES * 2 * 3), 3));
@@ -955,11 +958,12 @@ function PointCloudPoints({
     if (rotationRef.current) {
       const viewTarget = viewTransformRef.current;
       const viewSmooth = smoothedViewTransformRef.current;
-      const viewResponse = Math.min(1, delta * 6.4);
+      const rotationResponse = Math.min(1, delta * 4.6);
+      const zoomResponse = Math.min(1, delta * 6.4);
 
-      viewSmooth.rotationX = THREE.MathUtils.lerp(viewSmooth.rotationX, viewTarget.rotationX, viewResponse);
-      viewSmooth.rotationY = THREE.MathUtils.lerp(viewSmooth.rotationY, viewTarget.rotationY, viewResponse);
-      viewSmooth.zoom = THREE.MathUtils.lerp(viewSmooth.zoom, viewTarget.zoom, viewResponse);
+      viewSmooth.rotationX = THREE.MathUtils.lerp(viewSmooth.rotationX, viewTarget.rotationX, rotationResponse);
+      viewSmooth.rotationY = THREE.MathUtils.lerp(viewSmooth.rotationY, viewTarget.rotationY, rotationResponse);
+      viewSmooth.zoom = THREE.MathUtils.lerp(viewSmooth.zoom, viewTarget.zoom, zoomResponse);
 
       autoRotationRef.current += delta * settings.rotationSpeed;
       rotationRef.current.rotation.x = initialRotation[0] + viewSmooth.rotationX + (floatingLayer ? floatingRotationOffsetRef.current.x : 0);
@@ -968,9 +972,14 @@ function PointCloudPoints({
       rotationRef.current.scale.set(cloud.scale * settings.spread * viewSmooth.zoom, cloud.scale * viewSmooth.zoom, cloud.scale * settings.spread * viewSmooth.zoom);
     }
     if (materialRef.current) {
+      const lightTarget = interaction.active ? 1 : 0;
+      const lightResponse = 1 - Math.exp(-delta * (interaction.active ? 1.55 : 1.15));
+      touchLightStrengthRef.current = THREE.MathUtils.lerp(touchLightStrengthRef.current, lightTarget, lightResponse);
+      const touchLightStrength = touchLightStrengthRef.current;
       const introSizeBoost = introProgress < 1 ? 1.8 - introProgress * 0.8 : 1;
-      materialRef.current.size = settings.particleSize * introSizeBoost;
-      materialRef.current.opacity = settings.colorIntensity * (0.35 + introProgress * 0.65);
+      materialRef.current.color.copy(neutralParticleColor).lerp(warmParticleColor, touchLightStrength * 0.1);
+      materialRef.current.size = settings.particleSize * introSizeBoost * (1 + touchLightStrength * 0.018);
+      materialRef.current.opacity = Math.min(1, settings.colorIntensity * (0.35 + introProgress * 0.65) * (1 + touchLightStrength * 0.055));
     }
     if (connectionLineMaterialRef.current) {
       connectionLineMaterialRef.current.opacity = Math.min(0.07, alignmentStrengthRef.current * connectionFieldAgeRef.current * 0.06);

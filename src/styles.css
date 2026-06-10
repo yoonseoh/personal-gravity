@@ -37,9 +37,29 @@ main {
   position: fixed;
   inset: 0;
   --stage-scale: 1;
+  --touch-x: 50vw;
+  --touch-y: 50vh;
   z-index: 10;
   overflow: hidden;
   background: #000;
+}
+
+.detail-stage::before {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(circle at var(--touch-x) var(--touch-y), rgba(255, 241, 216, 0.07), rgba(255, 244, 226, 0.035) 8vw, rgba(255, 255, 255, 0) 22vw);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity 1400ms cubic-bezier(0.22, 0.62, 0.16, 1);
+}
+
+.detail-stage.is-touching::before {
+  opacity: 1;
+  transition-duration: 1300ms;
 }
 
 .detail-stage.is-transitioning {
@@ -896,10 +916,20 @@ main {
   width: calc(1342px * var(--stage-scale)) !important;
   height: calc(1240px * var(--stage-scale)) !important;
   z-index: 1;
+  filter: brightness(1) contrast(1) saturate(1);
   touch-action: none;
   transition:
     left 900ms cubic-bezier(0.16, 1, 0.3, 1),
-    width 900ms cubic-bezier(0.16, 1, 0.3, 1);
+    width 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1400ms cubic-bezier(0.22, 0.62, 0.16, 1);
+}
+
+.detail-stage.is-touching .scene {
+  filter: brightness(1.028) contrast(1.018) saturate(1.01);
+  transition:
+    left 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1300ms cubic-bezier(0.22, 0.62, 0.16, 1);
 }
 
 .scene::after {
@@ -916,11 +946,11 @@ main {
   left: 50%;
   width: 1920px;
   height: 1080px;
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(var(--stage-scale));
   transform-origin: center;
-  animation: detail-ui-fade 1050ms ease-out 4550ms both;
+  animation: detail-ui-fade 650ms ease-out both;
 }
 
 .touch-instruction {
@@ -936,7 +966,7 @@ main {
   text-align: center;
   pointer-events: none;
   transform: translateX(-50%);
-  animation: touch-instruction-guide 4400ms cubic-bezier(0.22, 0.62, 0.16, 1) both;
+  animation: touch-instruction-guide 5200ms cubic-bezier(0.22, 0.62, 0.16, 1) both;
 }
 
 .touch-instruction img {
@@ -1164,7 +1194,7 @@ main {
   }
 
   16%,
-  76% {
+  86% {
     filter: blur(0);
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
@@ -1307,7 +1337,7 @@ main {
 
 .description {
   position: absolute;
-  top: 830px;
+  top: 792px;
   left: 134px;
   width: 280px;
 }
@@ -1395,7 +1425,7 @@ main {
   position: absolute;
   left: auto;
   right: 108px;
-  top: 830px;
+  top: 792px;
   bottom: auto;
   display: block;
   width: 650px;
@@ -1460,6 +1490,12 @@ main {
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(5px) saturate(0.72);
   -webkit-backdrop-filter: blur(5px) saturate(0.72);
+  opacity: 0.88;
+  transform: scale(1);
+  transition:
+    opacity 1400ms cubic-bezier(0.22, 0.62, 0.16, 1),
+    transform 1400ms cubic-bezier(0.22, 0.62, 0.16, 1),
+    background-color 1400ms cubic-bezier(0.22, 0.62, 0.16, 1);
 }
 
 .product-orbit i::after {
@@ -1475,6 +1511,19 @@ main {
   height: 100%;
   object-fit: contain;
   transform: scale(0.81);
+  transition: transform 620ms cubic-bezier(0.22, 0.62, 0.16, 1);
+}
+
+.gravity-frame.is-touching .product-orbit i {
+  background: rgba(255, 245, 232, 0.095);
+  opacity: 0.96;
+  transform: scale(1.014);
+  transition-duration: 1300ms;
+}
+
+.gravity-frame.is-touching .product-orbit img {
+  transform: scale(0.825);
+  transition-duration: 1300ms;
 }
 
 .back-pill {
@@ -1545,7 +1594,7 @@ main {
   }
 
   .description {
-    top: 830px;
+    top: 792px;
     left: 134px;
     width: 520px;
   }

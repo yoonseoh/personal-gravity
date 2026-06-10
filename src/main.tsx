@@ -1089,6 +1089,7 @@ function DetailPage({
   const settingsSnapshot = useMemo(() => settings, [settings]);
   const [stageScale, setStageScale] = useState(1);
   const hasTouchGravityInteraction = Boolean(planet.floatingPointDataUrl || planet.floatingPointDataUrls?.length) && !isTransitioning;
+  const [showTouchInstruction, setShowTouchInstruction] = useState(hasTouchGravityInteraction);
   const [interactionPoint, setInteractionPoint] = useState<DetailInteractionPoint>({ active: false, x: 0, y: 0, clientX: 0, clientY: 0, velocityX: 0, velocityY: 0, speed: 0 });
   const [detailView, setDetailView] = useState({ rotationX: 0, rotationY: 0, zoom: 1 });
   const interactionPointerIdRef = useRef<number | null>(null);
@@ -1106,6 +1107,20 @@ function DetailPage({
     window.addEventListener("resize", syncScale);
     return () => window.removeEventListener("resize", syncScale);
   }, []);
+
+  useEffect(() => {
+    if (!hasTouchGravityInteraction) {
+      setShowTouchInstruction(false);
+      return undefined;
+    }
+
+    setShowTouchInstruction(true);
+    const timeout = window.setTimeout(() => {
+      setShowTouchInstruction(false);
+    }, 5200);
+
+    return () => window.clearTimeout(timeout);
+  }, [hasTouchGravityInteraction, planet.id]);
 
   const getInteractionPointFromClient = (clientX: number, clientY: number, includeVelocity = true): DetailInteractionPoint => {
     const deltaX = includeVelocity ? clientX - lastInteractionRef.current.clientX : 0;
@@ -1181,8 +1196,8 @@ function DetailPage({
         : current.zoom;
 
       return {
-        rotationX: THREE.MathUtils.clamp(current.rotationX + deltaY * 0.0029, -0.38, 0.38),
-        rotationY: current.rotationY + deltaX * 0.0042,
+        rotationX: THREE.MathUtils.clamp(current.rotationX + deltaY * 0.00145, -0.38, 0.38),
+        rotationY: current.rotationY + deltaX * 0.00215,
         zoom: nextZoom
       };
     });
@@ -1219,8 +1234,12 @@ function DetailPage({
 
   return (
     <div
-      className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}${hasTouchGravityInteraction ? " is-plant-interactive" : ""}`}
-      style={{ "--stage-scale": stageScale } as React.CSSProperties}
+      className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}${hasTouchGravityInteraction ? " is-plant-interactive" : ""}${interactionPoint.active ? " is-touching" : ""}`}
+      style={{
+        "--stage-scale": stageScale,
+        "--touch-x": `${interactionPoint.clientX || window.innerWidth / 2}px`,
+        "--touch-y": `${interactionPoint.clientY || window.innerHeight / 2}px`
+      } as React.CSSProperties}
       onPointerDown={handleInteractionStart}
       onPointerMove={handleInteractionMove}
       onPointerUp={handleInteractionEnd}
@@ -1245,13 +1264,17 @@ function DetailPage({
       />
       {!isTransitioning && (
         <>
-          {hasTouchGravityInteraction && <TouchInstructionOverlay key={planet.id} />}
-          <GravityInterface
-            planet={planet}
-            onBack={onBack}
-            onPreviousPlanet={onPreviousPlanet}
-            onNextPlanet={onNextPlanet}
-          />
+          {showTouchInstruction && <TouchInstructionOverlay key={planet.id} />}
+          {!showTouchInstruction && (
+            <GravityInterface
+              key={planet.id}
+              planet={planet}
+              isTouching={interactionPoint.active}
+              onBack={onBack}
+              onPreviousPlanet={onPreviousPlanet}
+              onNextPlanet={onNextPlanet}
+            />
+          )}
           {!hasTouchGravityInteraction && <ParticleControls settings={settings} onChange={onSettingsChange} />}
         </>
       )}
@@ -1262,11 +1285,13 @@ function DetailPage({
 
 function GravityInterface({
   planet,
+  isTouching,
   onBack,
   onPreviousPlanet,
   onNextPlanet
 }: {
   planet: PlanetContent;
+  isTouching: boolean;
   onBack: () => void;
   onPreviousPlanet: () => void;
   onNextPlanet: () => void;
@@ -1274,7 +1299,7 @@ function GravityInterface({
   const productGridWidth = planet.products.length * 132 + Math.max(0, planet.products.length - 1) * 18;
 
   return (
-    <section className="gravity-frame" aria-label="Personal Gravity">
+    <section className={`gravity-frame${isTouching ? " is-touching" : ""}`} aria-label="Personal Gravity">
       <div className="title-copy">
         <PersonalGravityBrand />
         <p>화면을 꾹 눌러, 가전이 반응하는 순간을 느껴보세요.</p>
