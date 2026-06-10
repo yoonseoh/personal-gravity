@@ -1,5 +1,5 @@
 import { useFrame, useLoader } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
@@ -20,6 +20,7 @@ type PointCloudModelProps = {
   viewZoom?: number;
   interactionPoint?: DetailInteractionPoint;
   introPaused?: boolean;
+  onReady?: () => void;
 };
 
 type SampledCloud = {
@@ -535,7 +536,8 @@ function BakedPointCloudModel({
   floatingLayer = false,
   floatingLayerIndex = 0,
   showConnectionLines = true,
-  introPaused = false
+  introPaused = false,
+  onReady
 }: {
   pointDataUrl: string;
   settings: ViewerSettings;
@@ -549,6 +551,7 @@ function BakedPointCloudModel({
   floatingLayerIndex?: number;
   showConnectionLines?: boolean;
   introPaused?: boolean;
+  onReady?: (pointDataUrl: string) => void;
 }) {
   const [cloud, setCloud] = useState<SampledCloud | null>(null);
 
@@ -576,6 +579,7 @@ function BakedPointCloudModel({
       });
       disposedCloud = nextCloud;
       setCloud(nextCloud);
+      onReady?.(pointDataUrl);
     }).catch((error) => {
       if (!abortController.signal.aborted) {
         console.error(error);
@@ -586,7 +590,7 @@ function BakedPointCloudModel({
       abortController.abort();
       disposedCloud?.geometry.dispose();
     };
-  }, [pointDataUrl]);
+  }, [onReady, pointDataUrl]);
 
   if (!cloud) return null;
 
@@ -1022,9 +1026,31 @@ export function PointCloudModel({
   viewRotationY = 0,
   viewZoom = 1,
   interactionPoint,
-  introPaused = false
+  introPaused = false,
+  onReady
 }: PointCloudModelProps) {
-  const floatingUrls = [floatingPointDataUrl, ...floatingPointDataUrls].filter((url): url is string => Boolean(url));
+  const floatingUrls = useMemo(
+    () => [floatingPointDataUrl, ...floatingPointDataUrls].filter((url): url is string => Boolean(url)),
+    [floatingPointDataUrl, floatingPointDataUrls]
+  );
+  const bakedPointUrls = useMemo(
+    () => [pointDataUrl, ...floatingUrls].filter((url): url is string => Boolean(url)),
+    [floatingUrls, pointDataUrl]
+  );
+  const bakedPointUrlsKey = bakedPointUrls.join("|");
+  const readyUrlsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    readyUrlsRef.current.clear();
+  }, [bakedPointUrlsKey]);
+
+  const handleBakedPointReady = useCallback((readyPointDataUrl: string) => {
+    if (bakedPointUrls.length === 0) return;
+    readyUrlsRef.current.add(readyPointDataUrl);
+    if (readyUrlsRef.current.size >= bakedPointUrls.length) {
+      onReady?.();
+    }
+  }, [bakedPointUrls.length, onReady]);
 
   if (pointDataUrl && floatingUrls.length > 0) {
     return (
@@ -1040,6 +1066,7 @@ export function PointCloudModel({
           interactionPoint={interactionPoint}
           showConnectionLines={false}
           introPaused={introPaused}
+          onReady={handleBakedPointReady}
         />
         {floatingUrls.map((floatingUrl, index) => (
           <BakedPointCloudModel
@@ -1056,6 +1083,7 @@ export function PointCloudModel({
             floatingLayerIndex={index}
             showConnectionLines
             introPaused={introPaused}
+            onReady={handleBakedPointReady}
           />
         ))}
       </>
@@ -1075,6 +1103,7 @@ export function PointCloudModel({
         interactionPoint={interactionPoint}
         showConnectionLines={false}
         introPaused={introPaused}
+        onReady={handleBakedPointReady}
       />
     );
   }

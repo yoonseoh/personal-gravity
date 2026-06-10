@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useProgress } from "@react-three/drei";
@@ -329,7 +329,8 @@ function Scene({
   viewZoom = 1,
   interactionPoint,
   fixedCamera = false,
-  introPaused = false
+  introPaused = false,
+  onReady
 }: {
   settings: ViewerSettings;
   modelUrl: string;
@@ -343,6 +344,7 @@ function Scene({
   interactionPoint?: DetailInteractionPoint;
   fixedCamera?: boolean;
   introPaused?: boolean;
+  onReady?: () => void;
 }) {
   return (
     <Canvas
@@ -370,6 +372,7 @@ function Scene({
           viewZoom={viewZoom}
           interactionPoint={interactionPoint}
           introPaused={introPaused}
+          onReady={onReady}
         />
       </Suspense>
 
@@ -396,11 +399,9 @@ function Scene({
 }
 
 function HomePage({
-  onEnterStart,
-  onEnterComplete
+  onEnterStart
 }: {
   onEnterStart: (planet: PlanetKey) => void;
-  onEnterComplete: (planet: PlanetKey) => void;
 }) {
   const systemRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLElement>(null);
@@ -435,7 +436,6 @@ function HomePage({
 
     onEnterStart(planet);
     setIsEntering(true);
-    window.setTimeout(() => onEnterComplete(planet), ENTRY_LOADING_DURATION_MS);
   };
 
   useEffect(() => {
@@ -1058,6 +1058,15 @@ function EntryLoadingOverlay({ planet }: { planet: PlanetContent }) {
   );
 }
 
+function TouchInstructionOverlay() {
+  return (
+    <div className="touch-instruction" aria-live="polite">
+      <img src={assetUrl("images/ui/icon_touch.svg")} alt="" aria-hidden="true" />
+      <p>화면을 꾹 누르거나, 드래그해보세요</p>
+    </div>
+  );
+}
+
 function DetailPage({
   settings,
   planet,
@@ -1065,7 +1074,8 @@ function DetailPage({
   onPreviousPlanet,
   onNextPlanet,
   onSettingsChange,
-  isTransitioning = false
+  isTransitioning = false,
+  onSceneReady
 }: {
   settings: ViewerSettings;
   planet: PlanetContent;
@@ -1074,6 +1084,7 @@ function DetailPage({
   onNextPlanet: () => void;
   onSettingsChange: DetailControlProps["onChange"];
   isTransitioning?: boolean;
+  onSceneReady?: () => void;
 }) {
   const settingsSnapshot = useMemo(() => settings, [settings]);
   const [stageScale, setStageScale] = useState(1);
@@ -1084,6 +1095,9 @@ function DetailPage({
   const lastInteractionRef = useRef({ clientX: 0, clientY: 0 });
   const activePointersRef = useRef(new Map<number, { clientX: number; clientY: number }>());
   const lastGestureRef = useRef({ centerX: 0, centerY: 0, distance: 0 });
+  const pointDataUrl = useMemo(() => planet.pointDataUrl ? assetUrl(planet.pointDataUrl) : undefined, [planet.pointDataUrl]);
+  const floatingPointDataUrl = useMemo(() => planet.floatingPointDataUrl ? assetUrl(planet.floatingPointDataUrl) : undefined, [planet.floatingPointDataUrl]);
+  const floatingPointDataUrls = useMemo(() => planet.floatingPointDataUrls?.map((url) => assetUrl(url)), [planet.floatingPointDataUrls]);
 
   useEffect(() => {
     const syncScale = () => setStageScale(getStageScale());
@@ -1217,9 +1231,9 @@ function DetailPage({
       <Scene
         settings={settingsSnapshot}
         modelUrl={assetUrl(planet.modelUrl)}
-        pointDataUrl={planet.pointDataUrl ? assetUrl(planet.pointDataUrl) : undefined}
-        floatingPointDataUrl={planet.floatingPointDataUrl ? assetUrl(planet.floatingPointDataUrl) : undefined}
-        floatingPointDataUrls={planet.floatingPointDataUrls?.map((url) => assetUrl(url))}
+        pointDataUrl={pointDataUrl}
+        floatingPointDataUrl={floatingPointDataUrl}
+        floatingPointDataUrls={floatingPointDataUrls}
         initialRotation={DETAIL_INITIAL_ROTATIONS[planet.id]}
         viewRotationX={hasTouchGravityInteraction ? detailView.rotationX : 0}
         viewRotationY={hasTouchGravityInteraction ? detailView.rotationY : 0}
@@ -1227,9 +1241,11 @@ function DetailPage({
         interactionPoint={hasTouchGravityInteraction ? interactionPoint : undefined}
         fixedCamera={hasTouchGravityInteraction}
         introPaused={isTransitioning}
+        onReady={onSceneReady}
       />
       {!isTransitioning && (
         <>
+          {hasTouchGravityInteraction && <TouchInstructionOverlay key={planet.id} />}
           <GravityInterface
             planet={planet}
             onBack={onBack}
@@ -1307,7 +1323,18 @@ function App() {
   const [view, setView] = useState<"home" | "detail">(shouldStartDetail ? "detail" : "home");
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetKey>(initialPlanet);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isTransitionMinimumElapsed, setIsTransitionMinimumElapsed] = useState(false);
+  const [isDetailSceneReady, setIsDetailSceneReady] = useState(!shouldStartDetail);
   const currentPlanet = PLANETS[selectedPlanet];
+  const handleDetailSceneReady = useCallback(() => {
+    setIsDetailSceneReady(true);
+  }, []);
+  const completeTransition = useCallback((planet: PlanetKey) => {
+    setSelectedPlanet(planet);
+    setView("detail");
+    setIsTransitioning(false);
+    updateBrowserUrl("detail", planet);
+  }, []);
   const movePlanet = (direction: -1 | 1) => {
     const currentIndex = PLANET_ORDER.indexOf(selectedPlanet);
     const nextPlanet = PLANET_ORDER[(currentIndex + direction + PLANET_ORDER.length) % PLANET_ORDER.length];
@@ -1317,6 +1344,22 @@ function App() {
     setIsTransitioning(false);
     updateBrowserUrl("detail", nextPlanet);
   };
+
+  useEffect(() => {
+    if (!isTransitioning) return undefined;
+
+    setIsTransitionMinimumElapsed(false);
+    const timeout = window.setTimeout(() => {
+      setIsTransitionMinimumElapsed(true);
+    }, ENTRY_LOADING_DURATION_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [isTransitioning, selectedPlanet]);
+
+  useEffect(() => {
+    if (!isTransitioning || !isTransitionMinimumElapsed || !isDetailSceneReady) return;
+    completeTransition(selectedPlanet);
+  }, [completeTransition, isDetailSceneReady, isTransitionMinimumElapsed, isTransitioning, selectedPlanet]);
 
   useEffect(() => {
     window.history.replaceState({ view, planet: selectedPlanet }, "");
@@ -1357,6 +1400,7 @@ function App() {
           settings={settings}
           planet={currentPlanet}
           isTransitioning={isTransitioning}
+          onSceneReady={handleDetailSceneReady}
           onBack={() => {
             setIsTransitioning(false);
             setView("home");
@@ -1372,13 +1416,9 @@ function App() {
         <HomePage
           onEnterStart={(planet) => {
             setSelectedPlanet(planet);
+            setIsDetailSceneReady(false);
+            setIsTransitionMinimumElapsed(false);
             setIsTransitioning(true);
-          }}
-          onEnterComplete={(planet) => {
-            setSelectedPlanet(planet);
-            setView("detail");
-            setIsTransitioning(false);
-            updateBrowserUrl("detail", planet);
           }}
         />
       )}
