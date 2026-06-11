@@ -1,9 +1,8 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useProgress } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
-import { Sparkles } from "lucide-react";
 import * as THREE from "three";
 import { PointCloudModel } from "./point-cloud-model";
 import "./styles.css";
@@ -51,7 +50,6 @@ type ProductContent = {
 
 type PlanetContent = {
   id: PlanetKey;
-  modelUrl: string;
   pointDataUrl?: string;
   floatingPointDataUrl?: string;
   floatingPointDataUrls?: string[];
@@ -66,7 +64,6 @@ const assetUrl = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^
 const PLANETS: Record<PlanetKey, PlanetContent> = {
   baby: {
     id: "baby",
-    modelUrl: "models/lg-model-baby2.glb",
     pointDataUrl: "models/lg-model-baby2-base-points",
     floatingPointDataUrls: [
       "models/lg-model-baby2-vacuum-points",
@@ -87,7 +84,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   plant: {
     id: "plant",
-    modelUrl: "models/lg-model-plant2.glb",
     pointDataUrl: "models/lg-model-plant2-base-points",
     floatingPointDataUrl: "models/lg-model-plant2-appliances-points",
     entryLabel: "액티브 시니어 부부",
@@ -105,7 +101,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   party: {
     id: "party",
-    modelUrl: "models/lg-model-party.glb",
     pointDataUrl: "models/lg-model-party-base-points",
     floatingPointDataUrl: "models/lg-model-party-appliances-points",
     entryLabel: "홈파티 부부",
@@ -122,7 +117,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   dress: {
     id: "dress",
-    modelUrl: "models/lg-model-dressroom2.glb",
     pointDataUrl: "models/lg-model-dressroom2-base-points",
     floatingPointDataUrl: "models/lg-model-dressroom2-appliances-points",
     entryLabel: "트렌드세터",
@@ -139,7 +133,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   bath: {
     id: "bath",
-    modelUrl: "models/lg-model-bathroom2.glb",
     pointDataUrl: "models/lg-model-bathroom2-base-points",
     floatingPointDataUrls: [
       "models/lg-model-bathroom2-appliance-1-points",
@@ -160,7 +153,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   cats: {
     id: "cats",
-    modelUrl: "models/lg-model-cat2.glb",
     pointDataUrl: "models/lg-model-cat2-base-points",
     floatingPointDataUrl: "models/lg-model-cat2-appliances-points",
     entryLabel: "반려묘 집사",
@@ -177,7 +169,6 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
   },
   "20s": {
     id: "20s",
-    modelUrl: "models/lg-model-20s2.glb",
     pointDataUrl: "models/lg-model-20s2-base-points",
     floatingPointDataUrl: "models/lg-model-20s2-appliances-points",
     entryLabel: "영화·게임 러버",
@@ -288,20 +279,6 @@ const ENTRY_PARTICLES = Array.from({ length: 64 }, (_, index) => {
   };
 });
 
-function Loader() {
-  const { active, progress } = useProgress();
-
-  if (!active && progress >= 100) return null;
-
-  return (
-    <div className="loader" aria-live="polite">
-      <Sparkles size={26} strokeWidth={1.6} />
-      <span>Preparing point field</span>
-      <strong>{Math.round(progress)}%</strong>
-    </div>
-  );
-}
-
 function PersonalGravityBrand() {
   return (
     <>
@@ -319,7 +296,6 @@ function preventTrailingOrphan(text: string) {
 
 function Scene({
   settings,
-  modelUrl,
   pointDataUrl,
   floatingPointDataUrl,
   floatingPointDataUrls,
@@ -333,7 +309,6 @@ function Scene({
   onReady
 }: {
   settings: ViewerSettings;
-  modelUrl: string;
   pointDataUrl?: string;
   floatingPointDataUrl?: string;
   floatingPointDataUrls?: string[];
@@ -359,12 +334,10 @@ function Scene({
 
       <Suspense fallback={null}>
         <PointCloudModel
-          modelUrl={modelUrl}
           pointDataUrl={pointDataUrl}
           floatingPointDataUrl={floatingPointDataUrl}
           floatingPointDataUrls={floatingPointDataUrls}
           settings={settings}
-          maxDensity={MAX_DENSITY}
           displayPosition={MODEL_DISPLAY_POSITION}
           initialRotation={initialRotation}
           viewRotationX={viewRotationX}
@@ -723,149 +696,6 @@ function HomePage({
   );
 }
 
-type DetailControlProps = {
-  settings: ViewerSettings;
-  onChange: <Key extends keyof ViewerSettings>(key: Key, value: ViewerSettings[Key]) => void;
-};
-
-function DetailSlider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  display,
-  onChange
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  display: string;
-  onChange: (value: number) => void;
-}) {
-  const progress = Math.max(0, Math.min(1, (value - min) / (max - min)));
-
-  return (
-    <label className="particle-control" style={{ "--slider-progress": progress } as React.CSSProperties}>
-      <span className="particle-control__label">
-        <span>{label}</span>
-        <output>{display}</output>
-      </span>
-      <span className="particle-control__visual" aria-hidden="true">
-        <i />
-      </span>
-      <input
-        min={min}
-        max={max}
-        step={step}
-        type="range"
-        value={value}
-        onInput={(event) => onChange(Number(event.currentTarget.value))}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
-  );
-}
-
-function ParticleControls({ settings, onChange }: DetailControlProps) {
-  const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0, scale: 1 });
-  const dragRef = useRef<null | { pointerId: number; startX: number; startY: number; panelX: number; panelY: number }>(null);
-
-  useEffect(() => {
-    const placePanel = () => {
-      const scale = getStageScale();
-      const stageX = (window.innerWidth - 1920 * scale) / 2;
-      const stageY = (window.innerHeight - 1080 * scale) / 2;
-
-      setPanelPosition({
-        x: stageX + 1588 * scale,
-        y: stageY + 496.36 * scale,
-        scale
-      });
-    };
-
-    placePanel();
-    window.addEventListener("resize", placePanel);
-    return () => window.removeEventListener("resize", placePanel);
-  }, []);
-
-  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      panelX: panelPosition.x,
-      panelY: panelPosition.y
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-
-    const width = Math.min(237 * panelPosition.scale, window.innerWidth - 36);
-    const nextX = Math.max(8, Math.min(window.innerWidth - width - 8, drag.panelX + event.clientX - drag.startX));
-    const nextY = Math.max(8, Math.min(window.innerHeight - 120, drag.panelY + event.clientY - drag.startY));
-    setPanelPosition((current) => ({ ...current, x: nextX, y: nextY }));
-  };
-
-  const handlePointerUp = (event: React.PointerEvent<HTMLElement>) => {
-    if (dragRef.current?.pointerId === event.pointerId) {
-      dragRef.current = null;
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  return (
-    <aside
-      className="particle-panel"
-      aria-label="Particle controls"
-      style={{ left: panelPosition.x, top: panelPosition.y, "--control-scale": panelPosition.scale } as React.CSSProperties}
-    >
-      <div
-        className="particle-panel__header"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
-        <strong>Parameters</strong>
-        <span>drag</span>
-      </div>
-      <DetailSlider
-        label="Size"
-        value={settings.particleSize}
-        min={0.001}
-        max={0.008}
-        step={0.0005}
-        display=""
-        onChange={(value) => onChange("particleSize", value)}
-      />
-      <DetailSlider
-        label="Density"
-        value={settings.density}
-        min={80_000}
-        max={MAX_DENSITY}
-        step={5_000}
-        display=""
-        onChange={(value) => onChange("density", value)}
-      />
-      <DetailSlider
-        label="Glow"
-        value={settings.glow}
-        min={0}
-        max={2.4}
-        step={0.05}
-        display=""
-        onChange={(value) => onChange("glow", value)}
-      />
-    </aside>
-  );
-}
-
 function EntryParticleLoader() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -1073,7 +903,6 @@ function DetailPage({
   onBack,
   onPreviousPlanet,
   onNextPlanet,
-  onSettingsChange,
   isTransitioning = false,
   onSceneReady
 }: {
@@ -1082,7 +911,6 @@ function DetailPage({
   onBack: () => void;
   onPreviousPlanet: () => void;
   onNextPlanet: () => void;
-  onSettingsChange: DetailControlProps["onChange"];
   isTransitioning?: boolean;
   onSceneReady?: () => void;
 }) {
@@ -1249,7 +1077,6 @@ function DetailPage({
     >
       <Scene
         settings={settingsSnapshot}
-        modelUrl={assetUrl(planet.modelUrl)}
         pointDataUrl={pointDataUrl}
         floatingPointDataUrl={floatingPointDataUrl}
         floatingPointDataUrls={floatingPointDataUrls}
@@ -1275,10 +1102,8 @@ function DetailPage({
               onNextPlanet={onNextPlanet}
             />
           )}
-          {!hasTouchGravityInteraction && <ParticleControls settings={settings} onChange={onSettingsChange} />}
         </>
       )}
-      {!planet.pointDataUrl && <Loader />}
     </div>
   );
 }
@@ -1339,7 +1164,7 @@ function GravityInterface({
 }
 
 function App() {
-  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
+  const settings = DEFAULT_SETTINGS;
   const planetParam = new URLSearchParams(window.location.search).get("planet");
   const initialPlanet = isPlanetKey(planetParam) ? planetParam : "baby";
   const shouldStartDetail =
@@ -1433,7 +1258,6 @@ function App() {
           }}
           onPreviousPlanet={() => movePlanet(-1)}
           onNextPlanet={() => movePlanet(1)}
-          onSettingsChange={(key, value) => setSettings((current) => ({ ...current, [key]: value }))}
         />
       )}
       {isTransitioning && <EntryLoadingOverlay planet={currentPlanet} />}
