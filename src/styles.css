@@ -23,6 +23,8 @@ main {
   height: 100%;
   margin: 0;
   overflow: hidden;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -89,6 +91,7 @@ main {
   --portal-y: 54vh;
   --enter-shift-x: 0px;
   --enter-shift-y: 0px;
+  --home-type-scale: 1;
   min-height: 100svh;
   overflow: hidden;
   background:
@@ -105,6 +108,12 @@ main {
   animation: pg-home-reveal-through 3800ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
   pointer-events: none;
   will-change: opacity, transform;
+}
+
+@media (min-width: 1500px) and (max-resolution: 1.5dppx) {
+  .pg-scene {
+    --home-type-scale: 0.78;
+  }
 }
 
 .pg-scene::before,
@@ -150,9 +159,9 @@ main {
 
 .pg-symbol {
   display: block;
-  width: clamp(30px, 2.4vw, 38px);
+  width: calc(34px * var(--home-type-scale));
   height: auto;
-  margin: 0 auto clamp(8px, 0.9vh, 14px);
+  margin: 0 auto calc(10px * var(--home-type-scale));
   color: rgba(255, 255, 255, 0.92);
   overflow: visible;
 }
@@ -167,24 +176,24 @@ main {
 
 .pg-intro h1 {
   margin: 0;
-  font-size: clamp(22px, 1.45vw, 24px);
+  font-size: calc(22px * var(--home-type-scale));
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: 0.32em;
 }
 
 .pg-subtitle {
-  margin: clamp(4px, 0.75vh, 12px) 0 0;
+  margin: calc(6px * var(--home-type-scale)) 0 0;
   color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(14px, 1.05vw, 16px);
+  font-size: calc(14px * var(--home-type-scale));
   font-weight: 500;
   line-height: 1.45;
 }
 
 .pg-guide {
-  margin: clamp(6px, 0.9vh, 14px) 0 0;
+  margin: calc(8px * var(--home-type-scale)) 0 0;
   color: rgba(255, 255, 255, 0.48);
-  font-size: clamp(11px, 0.78vw, 13px);
+  font-size: calc(12px * var(--home-type-scale));
   font-weight: 500;
   line-height: 1.55;
 }
@@ -563,16 +572,16 @@ main {
 
 .home-title h1 {
   margin: 0;
-  font-size: clamp(32px, 2.3vw, 42px);
+  font-size: calc(36px * var(--home-type-scale));
   font-weight: 400;
   line-height: 1.05;
   letter-spacing: 0;
 }
 
 .home-title p {
-  margin: clamp(18px, 1.5vw, 28px) 0 0;
+  margin: calc(20px * var(--home-type-scale)) 0 0;
   color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(15px, 1.05vw, 18px);
+  font-size: calc(16px * var(--home-type-scale));
   line-height: 1.35;
   letter-spacing: 0;
 }
