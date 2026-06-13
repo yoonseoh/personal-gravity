@@ -14,6 +14,7 @@ export type ViewerSettings = {
   rotationSpeed: number;
   colorIntensity: number;
   spread: number;
+  performanceMode: "normal" | "light";
 };
 
 export type DetailInteractionPoint = {
@@ -71,15 +72,16 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "models/lg-model-baby2-air-points"
     ],
     entryLabel: "육아 부부",
-    title: "육아 부부의 행성",
+    title: "육아 부부의\nPersonal Gravity",
     description: [
-      "아기의 생활 리듬과 부모의 휴식에 맞춰 공기, 청결, 조명이 부드럽게 반응하는 공간.",
-      "하루 종일 바닥에서 머무는 아이를 위해, 집은 더 낮고 섬세하게 케어합니다."
+      "아기가 머무는 공간까지 깨끗하게",
+      "아기가 바닥에서 오래 놀아도 안심할 수 있도록 공기와 청결을 세심하게 관리하는 거실입니다. LG 퓨리케어 AI 오브제컬렉션 360˚ 공기청정기 M5는 아이가 생활하는 낮은 공간의 공기까지 관리하고, 코드제로 AI 오브제컬렉션 A9은 매일 쌓이는 먼지와 생활 오염을 빠르게 정리해줍니다",
+      "아기가 잠든 뒤에는 LG 올레드 evo AI로 부부만의 짧은 영화 시간이나 휴식 시간을 즐기며, 육아의 하루를 조용히 마무리하는 공간입니다."
     ],
     products: [
-      { name: "ThinQ ON AI", image: "images/products/baby/1.png" },
-      { name: "코드제로 AI 오브제컬렉션 A9", image: "images/products/baby/2.png" },
-      { name: "퓨리케어 AI 오브제컬렉션 360˚ 공기청정기 M5", image: "images/products/baby/3.png" }
+      { name: "LG 퓨리케어 AI 오브제컬렉션 360˚ 공기청정기 M5", image: "images/products/baby/3.png" },
+      { name: "LG 코드제로 AI 오브제컬렉션 A9", image: "images/products/baby/2.png" },
+      { name: "LG 올레드 evo AI", image: "images/products/20s/4.png" }
     ]
   },
   plant: {
@@ -87,16 +89,16 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     pointDataUrl: "models/lg-model-plant2-base-points",
     floatingPointDataUrl: "models/lg-model-plant2-appliances-points",
     entryLabel: "액티브 시니어 부부",
-    title: "액티브 시니어 부부의 행성",
+    title: "식물을 가꾸는 시니어 부부의\nPersonal Gravity",
     description: [
-      "부부의 하루 리듬과 식물의 성장 주기에 맞춰 건강, 청결, 휴식이 자연스럽게 유지되는 공간.",
-      "가사는 덜어내고, 햇살과 식물, 회복의 시간이 더 오래 머무르게 합니다."
+      "가사는 덜고, 건강한 일상은 더 오래",
+      "햇살이 잘 드는 거실에서 부부의 일상과 반려 식물이 함께 자라는 공간입니다. LG 휘센 타워 에어컨은 집 안 온도를 편안하게 맞추고, 틔운은 사계절 내내 식물을 키우는 즐거움을 더해줍니다. 청소는 로보킹 AI 올인원에 맡기고, 하루의 피로는 LG 힐링미 안마의자로 풀어줍니다.",
+      "복잡한 집안일은 줄이고, 건강하고 여유로운 하루를 오래 이어가게 돕는 시니어 부부의 거실입니다."
     ],
     products: [
-      { name: "휘센 AI 오브제컬렉션 타워 I 에어컨 1", image: "images/products/plant/1.png" },
-      { name: "코드제로 AI 오브제컬렉션 로보킹 올인원", image: "images/products/plant/2.png" },
-      { name: "틔운 미니", image: "images/products/plant/3.png" },
-      { name: "힐링미 안마의자 (MX9)", image: "images/products/plant/4.png" }
+      { name: "LG 틔운 미니", image: "images/products/plant/3.png" },
+      { name: "LG 힐링미 오브제컬렉션 안마의자", image: "images/products/plant/4.png" },
+      { name: "LG 코드제로 로보킹 AI 올인원", image: "images/products/plant/2.png" }
     ]
   },
   party: {
@@ -104,15 +106,16 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     pointDataUrl: "models/lg-model-party-base-points",
     floatingPointDataUrl: "models/lg-model-party-appliances-points",
     entryLabel: "홈파티 부부",
-    title: "홈파티 부부의 행성",
+    title: "홈파티를 즐기는 부부의\nPersonal Gravity",
     description: [
-      "요리하는 리듬과 손님을 맞이하는 분위기에 맞춰 색, 온도, 보관, 조리가 하나의 경험으로 연결되는 공간.",
-      "주방은 단순한 조리 공간을 넘어, 취향과 환대가 드러나는 무대가 됩니다."
+      "습기 걱정까지 덜어주는 나만의 홈 스파",
+      "주말마다 새로운 레시피를 시도하고, 좋아하는 사람들을 초대하는 미식가 부부의 주방입니다. LG 디오스 오브제컬렉션 냉장고는 파티 재료와 음료를 깔끔하게 보관하고, 주방 인테리어와 자연스럽게 어우러집니다.",
+      "여기에 광파오븐과 와인셀러가 더해져 요리 준비부터 와인 페어링까지 더 즐겁고 스마트하게 완성되는 홈 파티 공간입니다."
     ],
     products: [
-      { name: "디오스 AI 오브제컬렉션 김치톡톡 Fit & Max", image: "images/products/party/1.png" },
-      { name: "디오스 오브제컬렉션 광파오븐", image: "images/products/party/2.png" },
-      { name: "디오스 오브제컬렉션 와인셀러", image: "images/products/party/3.png" }
+      { name: "LG 디오스 오브제컬렉션 냉장고", image: "images/products/party/1.png" },
+      { name: "LG 디오스 오브제컬렉션 와인셀러", image: "images/products/party/3.png" },
+      { name: "LG 디오스 오브제컬렉션 광파오븐", image: "images/products/party/2.png" }
     ]
   },
   dress: {
@@ -120,15 +123,15 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     pointDataUrl: "models/lg-model-dressroom2-base-points",
     floatingPointDataUrl: "models/lg-model-dressroom2-appliances-points",
     entryLabel: "트렌드세터",
-    title: "트렌드세터의 행성",
+    title: "패션 러버의\nPersonal Gravity",
     description: [
-      "오늘의 스타일과 기록하고 싶은 순간에 맞춰 의류 관리와 무드가 나를 중심으로 완성되는 공간.",
-      "옷을 입고 관리하는 과정까지, 매일의 스타일이 하나의 콘텐츠가 됩니다."
+      "옷과 신발을 아끼는 나만의 드레스룸",
+      "좋아하는 옷과 스니커즈가 가득한 방에서 매일의 스타일이 완성됩니다. LG 스타일러 오브제컬렉션은 자주 입는 옷의 구김과 컨디션을 관리해주고, 슈케어는 아끼는 신발을 더 깔끔하게 오래 신을 수 있도록 도와줍니다.",
+      "번거로운 옷과 신발 관리를 간편하게 해결해, 매일의 스타일링을 더 가볍게 만들어주는 패션러버의 드레스룸입니다."
     ],
     products: [
-      { name: "ThinQ ON AI", image: "images/products/dress/1.png" },
-      { name: "스타일러 오브제컬렉션 슈케어", image: "images/products/dress/2.png" },
-      { name: "스타일러 오브제컬렉션", image: "images/products/dress/3.png" }
+      { name: "LG 스타일러 오브제컬렉션 슈케어", image: "images/products/dress/2.png" },
+      { name: "LG 스타일러 오브제컬렉션", image: "images/products/dress/3.png" }
     ]
   },
   bath: {
@@ -140,15 +143,16 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "models/lg-model-bathroom2-appliance-3-points"
     ],
     entryLabel: "홈 스파 매니아",
-    title: "홈 스파 매니아의 행성",
+    title: "홈스파 매니아의\nPersonal Gravity",
     description: [
-      "나의 회복 루틴과 체온 변화에 맞춰 온도, 습도, 조명이 섬세하게 조율되는 공간.",
-      "입욕 전후의 작은 변화까지 감지해, 욕실을 가장 사적인 휴식의 장면으로 만듭니다."
+      "습기와 세탁 걱정 없는 나만의 홈 스파",
+      "바쁜 일상 끝, 나만의 회복 시간을 보내는 욕실입니다. LG 퓨리케어 바스에어시스템은 입욕 중 온도와 습도를 쾌적하게 유지하고, 사용 후 남은 습기와 냄새까지 관리해 곰팡이 걱정을 덜어줍니다. 세탁기와 건조기는 젖은 타월, 가운, 홈웨어를 바로 세탁하고 보송하게 말려줍니다.",
+      "씻는 순간부터 마무리 관리까지 한 공간에서 해결되는, 집 안의 작은 호텔 스파입니다."
     ],
     products: [
-      { name: "ThinQ ON AI", image: "images/products/bath/1.png" },
-      { name: "퓨리케어 바스에어시스템", image: "images/products/bath/2.png" },
-      { name: "휘센 오브제컬렉션 제습기", image: "images/products/bath/3.png" }
+      { name: "LG 퓨리케어 바스에어시스템", image: "images/products/bath/2.png" },
+      { name: "LG 트롬 오브제컬렉션 세탁기", image: "images/products/bath/세탁기.png" },
+      { name: "LG 트롬 오브제컬렉션 건조기", image: "images/products/bath/건조기.png" }
     ]
   },
   cats: {
@@ -156,15 +160,15 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     pointDataUrl: "models/lg-model-cat2-base-points",
     floatingPointDataUrl: "models/lg-model-cat2-appliances-points",
     entryLabel: "반려묘 집사",
-    title: "반려묘 집사의 행성",
+    title: "고양이 집사의\nPersonal Gravity",
     description: [
-      "고양이의 움직임과 집사의 생활 패턴을 따라 공기와 청결이 유연하게 관리되는 공간.",
-      "보이지 않는 털과 먼지까지 따라가며, 사람과 반려동물의 일상을 함께 돌봅니다."
+      "고양이는 자유롭게, 털 걱정은 가볍게",
+      "캣워크와 캣타워가 있는 거실에서 고양이는 마음껏 뛰어놀고, 집사는 에어로캣타워와 코드제로 A9으로 털과 먼지를 관리합니다.",
+      "외출 중에도 홈뷰로 고양이 상태를 확인할 수 있는, 1인 집사를 위한 스마트 펫 라이프 공간입니다."
     ],
     products: [
-      { name: "AI 오브제컬렉션 에어로캣타워", image: "images/products/cats/1.png" },
-      { name: "ThinQ ON AI", image: "images/products/cats/2.png" },
-      { name: "코드제로 AI 오브제컬렉션 로보킹 올인원", image: "images/products/cats/3.png" }
+      { name: "LG 퓨리케어 AI 오브제컬렉션 에어로캣타워", image: "images/products/cats/1.png" },
+      { name: "LG 코드제로 오브제컬렉션 A9", image: "images/products/cats/3.png" }
     ]
   },
   "20s": {
@@ -172,16 +176,15 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     pointDataUrl: "models/lg-model-20s2-base-points",
     floatingPointDataUrl: "models/lg-model-20s2-appliances-points",
     entryLabel: "영화·게임 러버",
-    title: "영화·게임 러버의 행성",
+    title: "자취 만렙 대학생의\nPersonal Gravity",
     description: [
-      "퇴근 후의 피로와 콘텐츠 몰입도에 맞춰 조도, 사운드, 화면이 하나의 감각으로 정렬되는 공간.",
-      "콘텐츠가 시작되는 순간, 거실은 나만의 몰입 세계로 전환됩니다."
+      "책상에서 침대까지, 화면이 따라오는 원룸 라이프",
+      "노트북은 강의, 과제, 게임까지 한 번에 해결하고, 스탠바이미는 침대 옆이나 책상 옆으로 옮겨가며 콘텐츠 감상 공간을 만들어줍니다.",
+      "가구를 많이 둘 수 없는 대학생 원룸에서도 공부할 때는 집중 공간으로, 쉴 때는 작은 영화관으로 바뀌는 실용적인 콘텐츠 룸입니다."
     ],
     products: [
-      { name: "ThinQ ON AI", image: "images/products/20s/1.png" },
-      { name: "스마트 조명 스위치 3구", image: "images/products/20s/2.png" },
-      { name: "엑스붐 360", image: "images/products/20s/3.png" },
-      { name: "올레드 evo AI", image: "images/products/20s/4.png" }
+      { name: "LG 스탠바이미 2", image: "images/products/20s/2.png" },
+      { name: "LG 그램 Pro AI", image: "images/products/20s/그램.png" }
     ]
   }
 };
@@ -209,16 +212,27 @@ const isPlanetKey = (value: string | null | undefined): value is PlanetKey => {
   return value === "baby" || value === "plant" || value === "party" || value === "dress" || value === "bath" || value === "cats" || value === "20s";
 };
 
-function preloadPointData() {
+function getPlanetPointDataUrls(key: PlanetKey) {
+  return [
+    PLANETS[key].pointDataUrl,
+    PLANETS[key].floatingPointDataUrl,
+    ...(PLANETS[key].floatingPointDataUrls ?? [])
+  ].filter((url): url is string => Boolean(url));
+}
+
+function getPreloadPlanetKeys(centerPlanet: PlanetKey) {
+  const currentIndex = PLANET_ORDER.indexOf(centerPlanet);
+  const previousPlanet = PLANET_ORDER[(currentIndex - 1 + PLANET_ORDER.length) % PLANET_ORDER.length];
+  const nextPlanet = PLANET_ORDER[(currentIndex + 1) % PLANET_ORDER.length];
+
+  return Array.from(new Set([centerPlanet, previousPlanet, nextPlanet]));
+}
+
+function preloadPointData(centerPlanet: PlanetKey) {
   const urls = new Set<string>();
 
-  PLANET_ORDER.forEach((key) => {
-    const pointDataUrls = [
-      PLANETS[key].pointDataUrl,
-      PLANETS[key].floatingPointDataUrl,
-      ...(PLANETS[key].floatingPointDataUrls ?? [])
-    ].filter((url): url is string => Boolean(url));
-    pointDataUrls.forEach((pointDataUrl) => {
+  getPreloadPlanetKeys(centerPlanet).forEach((key) => {
+    getPlanetPointDataUrls(key).forEach((pointDataUrl) => {
       urls.add(assetUrl(`${pointDataUrl}.json`));
       urls.add(assetUrl(`${pointDataUrl}.bin`));
     });
@@ -256,8 +270,39 @@ const DEFAULT_SETTINGS: ViewerSettings = {
   glow: 0.38,
   rotationSpeed: 0.1,
   colorIntensity: 1,
-  spread: 1.04
+  spread: 1.04,
+  performanceMode: "normal"
 };
+
+function shouldUseLightPerformanceMode() {
+  const params = new URLSearchParams(window.location.search);
+  const performanceParam = params.get("performance");
+  if (performanceParam === "normal") return false;
+  if (performanceParam === "light" || performanceParam === "standbyme") return true;
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  return [
+    "webos",
+    "web0s",
+    "netcast",
+    "smart-tv",
+    "smarttv",
+    "tv safari",
+    "lge",
+    "lg browser"
+  ].some((token) => userAgent.includes(token));
+}
+
+function getViewerSettings(): ViewerSettings {
+  const useLightMode = shouldUseLightPerformanceMode();
+
+  return {
+    ...DEFAULT_SETTINGS,
+    density: useLightMode ? Math.floor(DEFAULT_SETTINGS.density * 0.5) : DEFAULT_SETTINGS.density,
+    glow: useLightMode ? 0.28 : DEFAULT_SETTINGS.glow,
+    performanceMode: useLightMode ? "light" : "normal"
+  };
+}
 
 function getStageScale() {
   return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -323,7 +368,7 @@ function Scene({
   return (
     <Canvas
       className="scene"
-      dpr={[1, 2]}
+      dpr={[1, 1.5]}
       camera={{ position: [1.25, 1.1, 4.4], fov: 42, near: 0.01, far: 120 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
     >
@@ -377,16 +422,10 @@ function HomePage({
 }) {
   const systemRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLElement>(null);
-  const suppressClickRef = useRef(false);
   const [isEntering, setIsEntering] = useState(false);
 
   const startEnter = (event?: React.MouseEvent<HTMLElement>) => {
     if (isEntering) return;
-    if (suppressClickRef.current) {
-      event?.preventDefault();
-      event?.stopPropagation();
-      return;
-    }
 
     const scene = sceneRef.current;
     const target = event?.target instanceof Element ? event.target.closest<HTMLElement>(".pg-planet") : null;
@@ -456,20 +495,6 @@ function HomePage({
       isOrbit: item.classList.contains("pg-orbit-mark")
     }));
     const rotation = { x: -58, y: 14, z: -10 };
-    let zoom = 1;
-    let drag: null | {
-      id: number;
-      x: number;
-      y: number;
-      lastX: number;
-      lastY: number;
-      lastTime: number;
-      moved: boolean;
-      rotationX: number;
-      rotationY: number;
-      rotationZ: number;
-    } = null;
-    let inertia = { x: 0, y: 0, z: 0 };
     let frame = 0;
     let lastFrame = 0;
 
@@ -531,23 +556,10 @@ function HomePage({
       if (now - lastFrame >= frameInterval) {
         lastFrame = now;
         const time = now / 1000;
-        if (!drag) {
-          const inertiaSpeed = Math.hypot(inertia.x, inertia.y, inertia.z);
-          if (inertiaSpeed > 0.003) {
-            rotation.x = Math.max(-138, Math.min(138, rotation.x + inertia.x));
-            rotation.y += inertia.y;
-            rotation.z += inertia.z;
-            inertia.x *= 0.88;
-            inertia.y *= 0.88;
-            inertia.z *= 0.88;
-          } else {
-            inertia = { x: 0, y: 0, z: 0 };
-          }
 
-          rotation.x += Math.sin(time * 0.42 + rotation.z) * 0.012;
-          rotation.y += Math.cos(time * 0.37) * 0.018;
-          rotation.z += Math.sin(time * 0.31) * 0.012;
-        }
+        rotation.x += Math.sin(time * 0.42 + rotation.z) * 0.012;
+        rotation.y += Math.cos(time * 0.37) * 0.018;
+        rotation.z += Math.sin(time * 0.31) * 0.012;
 
         system.style.setProperty("--space-x", `${rotation.x.toFixed(2)}deg`);
         system.style.setProperty("--space-y", `${rotation.y.toFixed(2)}deg`);
@@ -558,89 +570,11 @@ function HomePage({
       frame = requestAnimationFrame(tick);
     };
 
-    const handlePointerDown = (event: PointerEvent) => {
-      if ((event.target as Element).closest("button")) return;
-      system.setPointerCapture(event.pointerId);
-      system.classList.add("is-dragging");
-      drag = {
-        id: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        lastTime: performance.now(),
-        moved: false,
-        rotationX: rotation.x,
-        rotationY: rotation.y,
-        rotationZ: rotation.z
-      };
-      inertia = { x: 0, y: 0, z: 0 };
-    };
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!drag || drag.id !== event.pointerId) return;
-      const dx = event.clientX - drag.x;
-      const dy = event.clientY - drag.y;
-      const now = performance.now();
-      const recentDx = event.clientX - drag.lastX;
-      const recentDy = event.clientY - drag.lastY;
-      const frameScale = 16.67 / Math.max(16.67, now - drag.lastTime);
-
-      if (Math.hypot(dx, dy) > 6) drag.moved = true;
-      rotation.y = drag.rotationY + dx * 0.34;
-      rotation.x = Math.max(-138, Math.min(138, drag.rotationX - dy * 0.34));
-      rotation.z = drag.rotationZ + dx * 0.045 + dy * 0.025;
-      const nextInertia = {
-        x: -recentDy * 0.34 * frameScale,
-        y: recentDx * 0.34 * frameScale,
-        z: (recentDx * 0.045 + recentDy * 0.025) * frameScale
-      };
-      const inertiaMagnitude = Math.hypot(nextInertia.x, nextInertia.y, nextInertia.z);
-      const inertiaLimit = 1.3;
-      inertia = inertiaMagnitude > inertiaLimit
-        ? {
-            x: (nextInertia.x / inertiaMagnitude) * inertiaLimit,
-            y: (nextInertia.y / inertiaMagnitude) * inertiaLimit,
-            z: (nextInertia.z / inertiaMagnitude) * inertiaLimit
-          }
-        : nextInertia;
-      drag.lastX = event.clientX;
-      drag.lastY = event.clientY;
-      drag.lastTime = now;
-    };
-    const stopDrag = () => {
-      if (drag?.moved) {
-        suppressClickRef.current = true;
-        window.setTimeout(() => {
-          suppressClickRef.current = false;
-        }, 120);
-      }
-      if (drag && performance.now() - drag.lastTime > 140) {
-        inertia = { x: 0, y: 0, z: 0 };
-      }
-      drag = null;
-      system.classList.remove("is-dragging");
-    };
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      zoom = Math.min(1.45, Math.max(0.82, zoom + (event.deltaY > 0 ? -0.08 : 0.08)));
-      system.style.setProperty("--zoom", zoom.toFixed(2));
-    };
-
-    system.addEventListener("pointerdown", handlePointerDown);
-    system.addEventListener("pointermove", handlePointerMove);
-    system.addEventListener("pointerup", stopDrag);
-    system.addEventListener("pointercancel", stopDrag);
-    system.addEventListener("wheel", handleWheel, { passive: false });
     frame = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(frame);
       generated.forEach((item) => item.remove());
-      system.removeEventListener("pointerdown", handlePointerDown);
-      system.removeEventListener("pointermove", handlePointerMove);
-      system.removeEventListener("pointerup", stopDrag);
-      system.removeEventListener("pointercancel", stopDrag);
-      system.removeEventListener("wheel", handleWheel);
     };
   }, []);
 
@@ -1059,7 +993,7 @@ function DetailPage({
 
   return (
     <div
-      className={`detail-stage${isTransitioning ? " is-transitioning" : " is-active"}${hasTouchGravityInteraction ? " is-plant-interactive" : ""}${interactionPoint.active ? " is-touching" : ""}`}
+      className={`detail-stage detail-stage--${planet.id}${isTransitioning ? " is-transitioning" : " is-active"}${hasTouchGravityInteraction ? " is-plant-interactive" : ""}${interactionPoint.active ? " is-touching" : ""}`}
       style={{
         "--stage-scale": stageScale,
         "--touch-x": `${interactionPoint.clientX || window.innerWidth / 2}px`,
@@ -1118,32 +1052,22 @@ function GravityInterface({
   onPreviousPlanet: () => void;
   onNextPlanet: () => void;
 }) {
-  const productGridWidth = planet.products.length * 132 + Math.max(0, planet.products.length - 1) * 18;
-
   return (
-    <section className={`gravity-frame${isTouching ? " is-touching" : ""}`} aria-label="Personal Gravity">
+    <section className={`gravity-frame gravity-frame--${planet.id}${isTouching ? " is-touching" : ""}`} aria-label="Personal Gravity">
       <div className="title-copy">
-        <PersonalGravityBrand />
-        <p>화면을 꾹 눌러, 가전이 반응하는 순간을 느껴보세요.</p>
+        <img className="title-copy__touch-icon" src={assetUrl("images/ui/icon_touch.svg")} alt="" aria-hidden="true" />
+        <p>화면을 꾹 누르면, 내 손 끝을 중심으로 가전이 떠오릅니다.</p>
       </div>
 
-      <article className="description">
+      <aside className="detail-info-panel" aria-label={`${planet.entryLabel} information`}>
+        <p className="detail-info-panel__eyebrow">Personal Gravity</p>
         <h2>{planet.title}</h2>
-        {planet.description.map((paragraph) => (
-          <p key={paragraph}>{preventTrailingOrphan(paragraph)}</p>
-        ))}
-      </article>
-
-      <button className="arrow arrow--left" type="button" aria-label="Previous planet" onClick={onPreviousPlanet}>
-        ←
-      </button>
-      <button className="arrow arrow--right" type="button" aria-label="Next planet" onClick={onNextPlanet}>
-        →
-      </button>
-
-      <div className="bottom-guide" style={{ "--product-grid-width": `${productGridWidth}px` } as React.CSSProperties}>
-        <p>Smart Home Orbit</p>
-        <div className="product-links" aria-label="Product list">
+        <div className="detail-info-panel__copy">
+          {planet.description.map((paragraph) => (
+            <p key={paragraph}>{preventTrailingOrphan(paragraph)}</p>
+          ))}
+        </div>
+        <div className="detail-info-panel__products" aria-label="Product list">
           {planet.products.map((product, index) => (
             <div className="product-orbit" key={`${product.name}-${index}`}>
               <span>{product.name}</span>
@@ -1153,15 +1077,22 @@ function GravityInterface({
             </div>
           ))}
         </div>
-      </div>
+      </aside>
 
-      <button className="back-pill" type="button" onClick={onBack}>Back</button>
+      <button className="arrow arrow--left" type="button" aria-label="Previous planet" onClick={onPreviousPlanet}>
+        ←
+      </button>
+      <button className="arrow arrow--right" type="button" aria-label="Next planet" onClick={onNextPlanet}>
+        →
+      </button>
+
+      <button className="back-pill" type="button" onClick={onBack}>돌아가기</button>
     </section>
   );
 }
 
 function App() {
-  const settings = DEFAULT_SETTINGS;
+  const settings = useMemo(getViewerSettings, []);
   const planetParam = new URLSearchParams(window.location.search).get("planet");
   const initialPlanet = isPlanetKey(planetParam) ? planetParam : "baby";
   const shouldStartDetail =
@@ -1210,14 +1141,6 @@ function App() {
 
   useEffect(() => {
     window.history.replaceState({ view, planet: selectedPlanet }, "");
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    const preloadHandle = idleWindow.requestIdleCallback
-      ? idleWindow.requestIdleCallback(preloadPointData, { timeout: 1200 })
-      : window.setTimeout(preloadPointData, 600);
-
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const planetFromUrl = params.get("planet");
@@ -1232,13 +1155,26 @@ function App() {
     window.addEventListener("popstate", handlePopState);
     return () => {
       window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const preloadHandle = idleWindow.requestIdleCallback
+      ? idleWindow.requestIdleCallback(() => preloadPointData(selectedPlanet), { timeout: 1200 })
+      : window.setTimeout(() => preloadPointData(selectedPlanet), 600);
+
+    return () => {
       if (idleWindow.cancelIdleCallback && typeof preloadHandle === "number") {
         idleWindow.cancelIdleCallback(preloadHandle);
       } else {
         window.clearTimeout(preloadHandle);
       }
     };
-  }, []);
+  }, [selectedPlanet]);
 
   return (
     <main>

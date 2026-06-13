@@ -36,6 +36,7 @@ type BakedPointCloudMetadata = {
 };
 
 type BakedPointCloudOptions = {
+  keepRatio?: number;
   lowerHemisphereColorScale?: number;
   lowerHemisphereKeepRatio?: number;
 };
@@ -108,15 +109,59 @@ function thinLowerHemisphere(
   };
 }
 
+function thinPointCloud(
+  positions: Float32Array,
+  colors: Uint8Array,
+  keepRatio: number,
+  seedOffset = 0
+) {
+  if (keepRatio >= 1) {
+    return { colors, pointCount: positions.length / 3, positions };
+  }
+
+  const nextPositions = new Float32Array(positions.length);
+  const nextColors = new Uint8Array(colors.length);
+  let writeIndex = 0;
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const pointIndex = index / 3;
+    const seed = Math.sin((pointIndex + seedOffset) * 12.9898 + 78.233) * 43758.5453;
+    const random = seed - Math.floor(seed);
+
+    if (random > keepRatio) continue;
+
+    nextPositions[writeIndex] = positions[index];
+    nextPositions[writeIndex + 1] = positions[index + 1];
+    nextPositions[writeIndex + 2] = positions[index + 2];
+    nextColors[writeIndex] = colors[index];
+    nextColors[writeIndex + 1] = colors[index + 1];
+    nextColors[writeIndex + 2] = colors[index + 2];
+    writeIndex += 3;
+  }
+
+  return {
+    colors: nextColors.slice(0, writeIndex),
+    pointCount: writeIndex / 3,
+    positions: nextPositions.slice(0, writeIndex)
+  };
+}
+
 function makeBakedPointCloud(metadata: BakedPointCloudMetadata, data: ArrayBuffer, options: BakedPointCloudOptions = {}): SampledCloud {
   let pointCount = metadata.pointCount;
   const positionByteLength = pointCount * 3 * Float32Array.BYTES_PER_ELEMENT;
-  let positions = new Float32Array(data, 0, pointCount * 3);
-  let colors = new Uint8Array(data.slice(positionByteLength, positionByteLength + pointCount * 3));
+  let positions: Float32Array = new Float32Array(data, 0, pointCount * 3);
+  let colors: Uint8Array = new Uint8Array(data.slice(positionByteLength, positionByteLength + pointCount * 3));
   const bounds = new THREE.Box3(
     new THREE.Vector3(...metadata.bounds.min),
     new THREE.Vector3(...metadata.bounds.max)
   );
+
+  if (options.keepRatio !== undefined) {
+    const thinned = thinPointCloud(positions, colors, options.keepRatio);
+    positions = thinned.positions;
+    colors = thinned.colors;
+    pointCount = thinned.pointCount;
+  }
 
   if (options.lowerHemisphereKeepRatio !== undefined) {
     const thinned = thinLowerHemisphere(positions, colors, bounds, options.lowerHemisphereKeepRatio);
@@ -174,8 +219,16 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
 }
 
+function easeInOutCubic(value: number) {
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
 const INTRO_ANIMATED_POINTS = 72_000;
-const INTRO_DURATION = 1.35;
+const INTRO_FORM_DURATION = 1.35;
+const INTRO_DENSITY_REVEAL_DURATION = 0.75;
+const INTRO_TOTAL_DURATION = INTRO_FORM_DURATION + INTRO_DENSITY_REVEAL_DURATION;
 const INTERACTION_ALIGNMENT_POINTS = 96_000;
 const INTERACTION_CONNECTION_LINES = 50;
 const ENABLE_TOUCH_PARTICLE_ALIGNMENT = false;
@@ -210,6 +263,9 @@ function BakedPointCloudModel({
   onReady?: (pointDataUrl: string) => void;
 }) {
   const [cloud, setCloud] = useState<SampledCloud | null>(null);
+  const handleMountedReady = useCallback(() => {
+    onReady?.(pointDataUrl);
+  }, [onReady, pointDataUrl]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -228,14 +284,16 @@ function BakedPointCloudModel({
       })
     ]).then(([metadata, data]) => {
       if (abortController.signal.aborted) return;
+      const isLightMode = settings.performanceMode === "light";
       const shouldSoftenBabyBase = pointDataUrl.includes("lg-model-baby2-base-points");
+      const shouldThinBaseHemisphere = isLightMode && !floatingLayer;
       const nextCloud = makeBakedPointCloud(metadata, data, {
-        lowerHemisphereColorScale: shouldSoftenBabyBase ? 0.28 : undefined,
-        lowerHemisphereKeepRatio: shouldSoftenBabyBase ? 0.02 : undefined
+        keepRatio: isLightMode ? 0.5 : undefined,
+        lowerHemisphereColorScale: shouldSoftenBabyBase ? 0.28 : shouldThinBaseHemisphere ? 0.32 : undefined,
+        lowerHemisphereKeepRatio: shouldSoftenBabyBase ? 0.02 : shouldThinBaseHemisphere ? 0.22 : undefined
       });
       disposedCloud = nextCloud;
       setCloud(nextCloud);
-      onReady?.(pointDataUrl);
     }).catch((error) => {
       if (!abortController.signal.aborted) {
         console.error(error);
@@ -246,7 +304,7 @@ function BakedPointCloudModel({
       abortController.abort();
       disposedCloud?.geometry.dispose();
     };
-  }, [onReady, pointDataUrl]);
+  }, [floatingLayer, onReady, pointDataUrl, settings.performanceMode]);
 
   if (!cloud) return null;
 
@@ -264,6 +322,7 @@ function BakedPointCloudModel({
       floatingLayerIndex={floatingLayerIndex}
       showConnectionLines={showConnectionLines}
       introPaused={introPaused}
+      onMountedReady={handleMountedReady}
     />
   );
 }
@@ -280,7 +339,8 @@ function PointCloudPoints({
   floatingLayer = false,
   floatingLayerIndex = 0,
   showConnectionLines = true,
-  introPaused = false
+  introPaused = false,
+  onMountedReady
 }: {
   cloud: SampledCloud;
   settings: ViewerSettings;
@@ -294,6 +354,7 @@ function PointCloudPoints({
   floatingLayerIndex?: number;
   showConnectionLines?: boolean;
   introPaused?: boolean;
+  onMountedReady?: () => void;
 }) {
   const rotationRef = useRef<THREE.Group>(null);
   const innerRef = useRef<THREE.Group>(null);
@@ -368,7 +429,20 @@ function PointCloudPoints({
     positionAttribute.array.set(cloud.introPositions);
     positionAttribute.needsUpdate = true;
     cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount, 14_000));
-  }, [cloud.geometry, cloud.introPositions, displayPosition, floatingLayerIndex, initialRotation]);
+    let firstFrame = 0;
+    let secondFrame = 0;
+
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        onMountedReady?.();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [cloud.geometry, cloud.introPositions, displayPosition, floatingLayerIndex, initialRotation, onMountedReady, settings.density, cloud.pointCount]);
 
   useEffect(() => {
     return () => {
@@ -380,8 +454,9 @@ function PointCloudPoints({
   useFrame((state, delta) => {
     if (introPaused) return;
 
-    introTimeRef.current = Math.min(INTRO_DURATION, introTimeRef.current + delta);
-    const introProgress = easeOutCubic(introTimeRef.current / INTRO_DURATION);
+    introTimeRef.current = Math.min(INTRO_TOTAL_DURATION, introTimeRef.current + delta);
+    const formProgressRaw = Math.min(1, introTimeRef.current / INTRO_FORM_DURATION);
+    const introProgress = easeOutCubic(formProgressRaw);
     const positionAttribute = cloud.geometry.getAttribute("position") as THREE.BufferAttribute;
 
     if (introProgress < 1) {
@@ -401,10 +476,16 @@ function PointCloudPoints({
       positionAttribute.needsUpdate = true;
       const introDrawCount = Math.floor(Math.min(settings.density, cloud.pointCount, INTRO_ANIMATED_POINTS) * (0.18 + introProgress * 0.82));
       cloud.geometry.setDrawRange(0, introDrawCount);
-    } else if (introTimeRef.current - delta < INTRO_DURATION) {
+    } else if (introTimeRef.current - delta < INTRO_FORM_DURATION) {
       positionAttribute.array.set(cloud.originalPositions);
       positionAttribute.needsUpdate = true;
-      cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount));
+      cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount, INTRO_ANIMATED_POINTS));
+    } else if (introTimeRef.current < INTRO_TOTAL_DURATION) {
+      const revealProgress = easeInOutCubic((introTimeRef.current - INTRO_FORM_DURATION) / INTRO_DENSITY_REVEAL_DURATION);
+      const introPointCount = Math.min(settings.density, cloud.pointCount, INTRO_ANIMATED_POINTS);
+      const targetPointCount = Math.min(settings.density, cloud.pointCount);
+      const revealDrawCount = Math.floor(THREE.MathUtils.lerp(introPointCount, targetPointCount, revealProgress));
+      cloud.geometry.setDrawRange(0, revealDrawCount);
     } else {
       cloud.geometry.setDrawRange(0, Math.min(settings.density, cloud.pointCount));
     }
