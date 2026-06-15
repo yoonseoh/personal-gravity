@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { PointCloudModel } from "./point-cloud-model";
 import "./styles.css";
@@ -108,7 +108,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     entryLabel: "홈파티 부부",
     title: "홈파티를 즐기는 부부의\nPersonal Gravity",
     description: [
-      "습기 걱정까지 덜어주는 나만의 홈 스파",
+      "보관부터 조리까지, 함께 즐기는 홈파티 키친",
       "주말마다 새로운 레시피를 시도하고, 좋아하는 사람들을 초대하는 미식가 부부의 주방입니다. LG 디오스 오브제컬렉션 냉장고는 파티 재료와 음료를 깔끔하게 보관하고, 주방 인테리어와 자연스럽게 어우러집니다.",
       "여기에 광파오븐과 와인셀러가 더해져 요리 준비부터 와인 페어링까지 더 즐겁고 스마트하게 완성되는 홈 파티 공간입니다."
     ],
@@ -151,8 +151,8 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     ],
     products: [
       { name: "LG 퓨리케어 바스에어시스템", image: "images/products/bath/2.png" },
-      { name: "LG 트롬 오브제컬렉션 세탁기", image: "images/products/bath/세탁기.png" },
-      { name: "LG 트롬 오브제컬렉션 건조기", image: "images/products/bath/건조기.png" }
+      { name: "LG 트롬 오브제컬렉션 세탁기", image: "images/products/bath/washer.png" },
+      { name: "LG 트롬 오브제컬렉션 건조기", image: "images/products/bath/dryer.png" }
     ]
   },
   cats: {
@@ -184,7 +184,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     ],
     products: [
       { name: "LG 스탠바이미 2", image: "images/products/20s/2.png" },
-      { name: "LG 그램 Pro AI", image: "images/products/20s/그램.png" }
+      { name: "LG 그램 Pro AI", image: "images/products/20s/gram.png" }
     ]
   }
 };
@@ -408,7 +408,6 @@ function Scene({
 
       <EffectComposer multisampling={0}>
         <Bloom intensity={settings.glow} luminanceThreshold={0.05} luminanceSmoothing={0.2} mipmapBlur />
-        <Noise opacity={0.055} />
         <Vignette eskil={false} offset={0.18} darkness={0.72} />
       </EffectComposer>
     </Canvas>
@@ -453,7 +452,7 @@ function HomePage({
     const system = systemRef.current;
     if (!system) return undefined;
 
-    const frameInterval = 1000 / 30;
+    const frameInterval = 1000 / 24;
     const orbitProfiles = [
       { rx: 11.5, rz: 8.8 },
       { rx: 23.5, rz: 16.4 },
@@ -473,17 +472,6 @@ function HomePage({
           system.append(mark);
           return mark;
         });
-      }),
-      ...Array.from({ length: 8 }, (_, index) => {
-        const dot = document.createElement("span");
-        dot.className = "pg-orbital-dot";
-        dot.dataset.orbit = String(1 + (index % 4));
-        dot.dataset.phase = String((index * 1.4) % (Math.PI * 2));
-        dot.dataset.speed = String(0.06 + (index % 4) * 0.012);
-        dot.style.setProperty("--size", `${4 + (index % 3) * 2}px`);
-        dot.style.setProperty("--alpha", "0.34");
-        system.append(dot);
-        return dot;
       })
     ];
     const movers = [...generated, ...system.querySelectorAll<HTMLElement>(".pg-planet")].map((item) => ({
@@ -535,8 +523,6 @@ function HomePage({
       const scale = mover.isPlanet
         ? Math.max(minimumTouchScale, depthScale * orbitScale)
         : depthScale;
-      const lightX = 34 - Math.sin((rotation.y * Math.PI) / 180) * 18;
-      const lightY = 28 + Math.sin((rotation.x * Math.PI) / 180) * 22;
 
       mover.el.style.setProperty("--x", `${x}%`);
       mover.el.style.setProperty("--y", `${y}%`);
@@ -545,10 +531,9 @@ function HomePage({
       mover.el.style.setProperty("--depth-opacity", (mover.isOrbit ? 0.22 + depthNormal * 0.52 : 0.45 + depthNormal * 0.55).toFixed(3));
       mover.el.style.setProperty("--depth-blur", `${((1 - depthNormal) * 0.6).toFixed(2)}px`);
       mover.el.style.setProperty("--depth-light", (0.72 + depthNormal * 0.38).toFixed(3));
-      mover.el.style.setProperty("--light-x", `${lightX.toFixed(1)}%`);
-      mover.el.style.setProperty("--light-y", `${lightY.toFixed(1)}%`);
-      mover.el.style.setProperty("--surface-roll", `${(rotation.z + rotation.y * 0.25).toFixed(1)}deg`);
-      mover.el.style.setProperty("--mark-angle", `${((angle * 180) / Math.PI + rotation.z).toFixed(1)}deg`);
+      if (mover.isOrbit) {
+        mover.el.style.setProperty("--mark-angle", `${((angle * 180) / Math.PI + rotation.z).toFixed(1)}deg`);
+      }
       mover.el.style.zIndex = String(Math.round(rotated.z * 7 + (mover.isOrbit ? 120 : 300)));
     };
 
@@ -561,9 +546,15 @@ function HomePage({
         rotation.y += Math.cos(time * 0.37) * 0.018;
         rotation.z += Math.sin(time * 0.31) * 0.012;
 
+        const lightX = 34 - Math.sin((rotation.y * Math.PI) / 180) * 18;
+        const lightY = 28 + Math.sin((rotation.x * Math.PI) / 180) * 22;
+
         system.style.setProperty("--space-x", `${rotation.x.toFixed(2)}deg`);
         system.style.setProperty("--space-y", `${rotation.y.toFixed(2)}deg`);
         system.style.setProperty("--space-z", `${rotation.z.toFixed(2)}deg`);
+        system.style.setProperty("--light-x", `${lightX.toFixed(1)}%`);
+        system.style.setProperty("--light-y", `${lightY.toFixed(1)}%`);
+        system.style.setProperty("--surface-roll", `${(rotation.z + rotation.y * 0.25).toFixed(1)}deg`);
         movers.forEach((mover) => placeMover(mover, time));
       }
 

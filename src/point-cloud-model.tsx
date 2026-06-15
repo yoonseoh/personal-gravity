@@ -36,6 +36,7 @@ type BakedPointCloudMetadata = {
 };
 
 type BakedPointCloudOptions = {
+  interiorKeepRatio?: number;
   keepRatio?: number;
   lowerHemisphereColorScale?: number;
   lowerHemisphereKeepRatio?: number;
@@ -146,6 +147,136 @@ function thinPointCloud(
   };
 }
 
+function thinInteriorPointCloud(
+  positions: Float32Array,
+  colors: Uint8Array,
+  bounds: THREE.Box3,
+  interiorKeepRatio: number
+) {
+  if (interiorKeepRatio >= 1) {
+    return { colors, pointCount: positions.length / 3, positions };
+  }
+
+  const pointCount = positions.length / 3;
+  const gridSize = 46;
+  const gridMax = gridSize - 1;
+  const size = bounds.getSize(new THREE.Vector3());
+  const safeSizeX = Math.max(size.x, 0.001);
+  const safeSizeY = Math.max(size.y, 0.001);
+  const safeSizeZ = Math.max(size.z, 0.001);
+  const occupiedCells = new Set<number>();
+  const pointCellKeys = new Uint32Array(pointCount);
+  const edgeCells = new Set<number>();
+  const edgePositions = new Float32Array(positions.length);
+  const edgeColors = new Uint8Array(colors.length);
+  const interiorPositions = new Float32Array(positions.length);
+  const interiorColors = new Uint8Array(colors.length);
+  let edgeWriteIndex = 0;
+  let interiorWriteIndex = 0;
+
+  const getCellKey = (cellX: number, cellY: number, cellZ: number) => (
+    cellX + cellY * gridSize + cellZ * gridSize * gridSize
+  );
+  const decodeCellKey = (cellKey: number) => {
+    const cellZ = Math.floor(cellKey / (gridSize * gridSize));
+    const remainder = cellKey - cellZ * gridSize * gridSize;
+    const cellY = Math.floor(remainder / gridSize);
+    const cellX = remainder - cellY * gridSize;
+
+    return { cellX, cellY, cellZ };
+  };
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const pointIndex = index / 3;
+    const cellX = Math.min(gridMax, Math.max(0, Math.floor(((positions[index] - bounds.min.x) / safeSizeX) * gridSize)));
+    const cellY = Math.min(gridMax, Math.max(0, Math.floor(((positions[index + 1] - bounds.min.y) / safeSizeY) * gridSize)));
+    const cellZ = Math.min(gridMax, Math.max(0, Math.floor(((positions[index + 2] - bounds.min.z) / safeSizeZ) * gridSize)));
+    const cellKey = getCellKey(cellX, cellY, cellZ);
+
+    pointCellKeys[pointIndex] = cellKey;
+    occupiedCells.add(cellKey);
+  }
+
+  occupiedCells.forEach((cellKey) => {
+    const { cellX, cellY, cellZ } = decodeCellKey(cellKey);
+    const hasCell = (offsetX: number, offsetY: number, offsetZ: number) => {
+      const nextCellX = cellX + offsetX;
+      const nextCellY = cellY + offsetY;
+      const nextCellZ = cellZ + offsetZ;
+
+      if (
+        nextCellX < 0 || nextCellX > gridMax ||
+        nextCellY < 0 || nextCellY > gridMax ||
+        nextCellZ < 0 || nextCellZ > gridMax
+      ) {
+        return false;
+      }
+
+      return occupiedCells.has(getCellKey(nextCellX, nextCellY, nextCellZ));
+    };
+    let neighborCount = 0;
+
+    for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+      for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (let offsetZ = -1; offsetZ <= 1; offsetZ += 1) {
+          if (offsetX === 0 && offsetY === 0 && offsetZ === 0) continue;
+          if (hasCell(offsetX, offsetY, offsetZ)) neighborCount += 1;
+        }
+      }
+    }
+
+    const openAxes = Number(!hasCell(-1, 0, 0) || !hasCell(1, 0, 0))
+      + Number(!hasCell(0, -1, 0) || !hasCell(0, 1, 0))
+      + Number(!hasCell(0, 0, -1) || !hasCell(0, 0, 1));
+
+    if (openAxes >= 2 || neighborCount <= 5) {
+      edgeCells.add(cellKey);
+    }
+  });
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const pointIndex = index / 3;
+    const isEdgePoint = edgeCells.has(pointCellKeys[pointIndex]);
+    const seed = Math.sin(pointIndex * 12.9898 + 78.233) * 43758.5453;
+    const random = seed - Math.floor(seed);
+
+    if (isEdgePoint) {
+      edgePositions[edgeWriteIndex] = positions[index];
+      edgePositions[edgeWriteIndex + 1] = positions[index + 1];
+      edgePositions[edgeWriteIndex + 2] = positions[index + 2];
+      edgeColors[edgeWriteIndex] = colors[index];
+      edgeColors[edgeWriteIndex + 1] = colors[index + 1];
+      edgeColors[edgeWriteIndex + 2] = colors[index + 2];
+      edgeWriteIndex += 3;
+      continue;
+    }
+
+    if (random > interiorKeepRatio) continue;
+
+    interiorPositions[interiorWriteIndex] = positions[index];
+    interiorPositions[interiorWriteIndex + 1] = positions[index + 1];
+    interiorPositions[interiorWriteIndex + 2] = positions[index + 2];
+    interiorColors[interiorWriteIndex] = colors[index];
+    interiorColors[interiorWriteIndex + 1] = colors[index + 1];
+    interiorColors[interiorWriteIndex + 2] = colors[index + 2];
+    interiorWriteIndex += 3;
+  }
+
+  const nextPositions = new Float32Array(edgeWriteIndex + interiorWriteIndex);
+  const nextColors = new Uint8Array(edgeWriteIndex + interiorWriteIndex);
+
+  nextPositions.set(edgePositions.slice(0, edgeWriteIndex), 0);
+  nextPositions.set(interiorPositions.slice(0, interiorWriteIndex), edgeWriteIndex);
+  nextColors.set(edgeColors.slice(0, edgeWriteIndex), 0);
+  nextColors.set(interiorColors.slice(0, interiorWriteIndex), edgeWriteIndex);
+
+  return {
+    colors: nextColors,
+    pointCount: nextPositions.length / 3,
+    positions: nextPositions
+  };
+}
+
 function makeBakedPointCloud(metadata: BakedPointCloudMetadata, data: ArrayBuffer, options: BakedPointCloudOptions = {}): SampledCloud {
   let pointCount = metadata.pointCount;
   const positionByteLength = pointCount * 3 * Float32Array.BYTES_PER_ELEMENT;
@@ -158,6 +289,13 @@ function makeBakedPointCloud(metadata: BakedPointCloudMetadata, data: ArrayBuffe
 
   if (options.keepRatio !== undefined) {
     const thinned = thinPointCloud(positions, colors, options.keepRatio);
+    positions = thinned.positions;
+    colors = thinned.colors;
+    pointCount = thinned.pointCount;
+  }
+
+  if (options.interiorKeepRatio !== undefined) {
+    const thinned = thinInteriorPointCloud(positions, colors, bounds, options.interiorKeepRatio);
     positions = thinned.positions;
     colors = thinned.colors;
     pointCount = thinned.pointCount;
@@ -231,6 +369,7 @@ const INTRO_DENSITY_REVEAL_DURATION = 0.75;
 const INTRO_TOTAL_DURATION = INTRO_FORM_DURATION + INTRO_DENSITY_REVEAL_DURATION;
 const INTERACTION_ALIGNMENT_POINTS = 96_000;
 const INTERACTION_CONNECTION_LINES = 50;
+const INTERIOR_POINT_KEEP_RATIO = 0.33;
 const ENABLE_TOUCH_PARTICLE_ALIGNMENT = false;
 
 function BakedPointCloudModel({
@@ -288,7 +427,7 @@ function BakedPointCloudModel({
       const shouldSoftenBabyBase = pointDataUrl.includes("lg-model-baby2-base-points");
       const shouldThinBaseHemisphere = isLightMode && !floatingLayer;
       const nextCloud = makeBakedPointCloud(metadata, data, {
-        keepRatio: isLightMode ? 0.5 : undefined,
+        interiorKeepRatio: INTERIOR_POINT_KEEP_RATIO,
         lowerHemisphereColorScale: shouldSoftenBabyBase ? 0.28 : shouldThinBaseHemisphere ? 0.32 : undefined,
         lowerHemisphereKeepRatio: shouldSoftenBabyBase ? 0.02 : shouldThinBaseHemisphere ? 0.22 : undefined
       });
