@@ -569,7 +569,7 @@ function HomePage({
       <header className="pg-intro">
         <PersonalGravityBrand />
         <p className="pg-subtitle">당신이 중심이 되는 세상</p>
-        <p className="pg-guide">당신의 하루가 머무는 행성을 찾아보세요.</p>
+        <p className="pg-guide">행성을 터치해보세요</p>
       </header>
 
       <div className="pg-system" ref={systemRef} onClick={startEnter}>

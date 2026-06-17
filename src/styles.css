@@ -88,10 +88,6 @@ main {
 }
 
 .detail-stage.is-transitioning .scene {
-  left: calc(50% - 751px * var(--stage-scale));
-  top: calc(50% - 492px * var(--stage-scale));
-  width: calc(1342px * var(--stage-scale)) !important;
-  height: calc(1240px * var(--stage-scale)) !important;
   will-change: filter;
 }
 
@@ -175,7 +171,7 @@ main {
 
 .pg-symbol {
   display: block;
-  width: calc(28px * var(--home-type-scale));
+  width: calc(25px * var(--home-type-scale));
   height: auto;
   margin: 0 auto calc(8px * var(--home-type-scale));
   color: rgba(255, 255, 255, 0.92);
