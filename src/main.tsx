@@ -29,7 +29,7 @@ export type DetailInteractionPoint = {
 };
 
 const MAX_DENSITY = 500_000;
-const ENTRY_LOADING_DURATION_MS = 5800;
+const ENTRY_LOADING_DURATION_MS = 6500;
 const MODEL_DISPLAY_POSITION: [number, number, number] = [0, -0.18, 0];
 
 type PlanetKey = "baby" | "plant" | "party" | "dress" | "bath" | "cats" | "20s";
@@ -192,13 +192,13 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
 const PLANET_ORDER: PlanetKey[] = ["baby", "bath", "cats", "plant", "dress", "20s", "party"];
 
 const PLANET_BUTTONS = [
-  { className: "pg-planet--a", planet: "baby", orbit: "4", phase: "2.78", speed: "0.1", label: "육아하는 부부의 행성 선택" },
-  { className: "pg-planet--b", planet: "bath", orbit: "2", phase: "3.46", speed: "0.16", label: "배스 케어의 행성 선택" },
-  { className: "pg-planet--c", planet: "plant", orbit: "3", phase: "5.02", speed: "0.12", label: "식물과 함께 사는 행성 선택" },
-  { className: "pg-planet--d", planet: "party", orbit: "4", phase: "6.06", speed: "0.09", label: "파티를 즐기는 행성 선택" },
-  { className: "pg-planet--e", planet: "dress", orbit: "2", phase: "0.78", speed: "0.15", label: "드레스룸의 행성 선택" },
-  { className: "pg-planet--f", planet: "20s", orbit: "1", phase: "4.82", speed: "0.22", label: "20대 싱글의 행성 선택" },
-  { className: "pg-planet--g", planet: "cats", orbit: "2", phase: "2.28", speed: "0.13", label: "반려묘 가족의 행성 선택" }
+  { className: "pg-planet--a", planet: "baby", orbit: "4", phase: "2.78", speed: "0.05", label: "육아하는 부부의 행성 선택" },
+  { className: "pg-planet--b", planet: "bath", orbit: "2", phase: "3.46", speed: "0.08", label: "배스 케어의 행성 선택" },
+  { className: "pg-planet--c", planet: "plant", orbit: "3", phase: "5.02", speed: "0.06", label: "식물과 함께 사는 행성 선택" },
+  { className: "pg-planet--d", planet: "party", orbit: "4", phase: "6.06", speed: "0.045", label: "파티를 즐기는 행성 선택" },
+  { className: "pg-planet--e", planet: "dress", orbit: "2", phase: "0.78", speed: "0.075", label: "드레스룸의 행성 선택" },
+  { className: "pg-planet--f", planet: "20s", orbit: "1", phase: "4.82", speed: "0.11", label: "20대 싱글의 행성 선택" },
+  { className: "pg-planet--g", planet: "cats", orbit: "2", phase: "2.28", speed: "0.065", label: "반려묘 가족의 행성 선택" }
 ] satisfies Array<{
   className: string;
   planet: PlanetKey;
@@ -307,21 +307,6 @@ function getViewerSettings(): ViewerSettings {
 function getStageScale() {
   return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
 }
-
-const ENTRY_PARTICLES = Array.from({ length: 64 }, (_, index) => {
-  const angle = index * 137.508;
-  const radius = 42 + (index % 32) * 9.5;
-  const depth = 0.36 + ((index * 17) % 100) / 100;
-
-  return {
-    id: index,
-    x: Math.cos((angle * Math.PI) / 180) * radius * depth,
-    y: Math.sin((angle * Math.PI) / 180) * radius * depth,
-    delay: (index % 24) * 8,
-    size: 1.25 + (index % 6) * 0.42,
-    opacity: 0.22 + (index % 9) * 0.07
-  };
-});
 
 function PersonalGravityBrand() {
   return (
@@ -452,7 +437,6 @@ function HomePage({
     const system = systemRef.current;
     if (!system) return undefined;
 
-    const frameInterval = 1000 / 24;
     const orbitProfiles = [
       { rx: 11.5, rz: 8.8 },
       { rx: 23.5, rz: 16.4 },
@@ -474,17 +458,21 @@ function HomePage({
         });
       })
     ];
-    const movers = [...generated, ...system.querySelectorAll<HTMLElement>(".pg-planet")].map((item) => ({
+    const createMover = (item: HTMLElement) => ({
       el: item,
       orbit: Number(item.dataset.orbit || 2),
       phase: Number(item.dataset.phase || 0),
       speed: Number(item.dataset.speed || 0.12),
       isPlanet: item.classList.contains("pg-planet"),
-      isOrbit: item.classList.contains("pg-orbit-mark")
-    }));
+      isOrbit: item.classList.contains("pg-orbit-mark"),
+      minimumScale: item.classList.contains("pg-planet") ? 68 / Math.max(item.offsetWidth, 1) : 0
+    });
+    const orbitMovers = generated.map(createMover);
+    const planetMovers = [...system.querySelectorAll<HTMLElement>(".pg-planet")].map(createMover);
     const rotation = { x: -58, y: 14, z: -10 };
+    let systemWidth = Math.max(system.clientWidth, 1);
+    let systemHeight = Math.max(system.clientHeight, 1);
     let frame = 0;
-    let lastFrame = 0;
 
     const rotatePoint = (point: { x: number; y: number; z: number }) => {
       const toRad = Math.PI / 180;
@@ -503,7 +491,7 @@ function HomePage({
       return { x, y, z };
     };
 
-    const placeMover = (mover: (typeof movers)[number], time: number) => {
+    const placeMover = (mover: ReturnType<typeof createMover>, time: number) => {
       const orbit = orbitProfiles[mover.orbit - 1] || orbitProfiles[1];
       const angle = mover.phase + time * mover.speed;
       const rotated = rotatePoint({
@@ -514,49 +502,55 @@ function HomePage({
       const perspective = 1 / (1 - rotated.z / 190);
       const x = 50 + rotated.x * perspective;
       const y = 50 + rotated.y * perspective;
+      const xOffset = ((x - 50) / 100) * systemWidth;
+      const yOffset = ((y - 50) / 100) * systemHeight;
       const depthNormal = Math.max(0, Math.min(1, (rotated.z + orbit.rz) / (orbit.rz * 2)));
       const depthScale = mover.isOrbit
         ? 0.72 + depthNormal * 0.58
         : (mover.isPlanet ? 0.72 : 0.55) + depthNormal * (mover.isPlanet ? 0.5 : 0.36);
       const orbitScale = [0.8, 0.94, 1.08, 1.24][mover.orbit - 1] || 1;
-      const minimumTouchScale = mover.isPlanet ? 68 / mover.el.offsetWidth : 0;
       const scale = mover.isPlanet
-        ? Math.max(minimumTouchScale, depthScale * orbitScale)
+        ? Math.max(mover.minimumScale, depthScale * orbitScale)
         : depthScale;
 
-      mover.el.style.setProperty("--x", `${x}%`);
-      mover.el.style.setProperty("--y", `${y}%`);
+      mover.el.style.setProperty("--orbit-x", `${xOffset.toFixed(2)}px`);
+      mover.el.style.setProperty("--orbit-y", `${yOffset.toFixed(2)}px`);
       mover.el.style.setProperty("--depth-z", `${(rotated.z * 7).toFixed(1)}px`);
       mover.el.style.setProperty("--depth-scale", scale.toFixed(3));
       mover.el.style.setProperty("--depth-opacity", (mover.isOrbit ? 0.22 + depthNormal * 0.52 : 0.45 + depthNormal * 0.55).toFixed(3));
-      mover.el.style.setProperty("--depth-blur", `${((1 - depthNormal) * 0.6).toFixed(2)}px`);
-      mover.el.style.setProperty("--depth-light", (0.72 + depthNormal * 0.38).toFixed(3));
       if (mover.isOrbit) {
+        mover.el.style.setProperty("--depth-blur", `${((1 - depthNormal) * 0.6).toFixed(2)}px`);
+        mover.el.style.setProperty("--depth-light", (0.72 + depthNormal * 0.38).toFixed(3));
         mover.el.style.setProperty("--mark-angle", `${((angle * 180) / Math.PI + rotation.z).toFixed(1)}deg`);
       }
       mover.el.style.zIndex = String(Math.round(rotated.z * 7 + (mover.isOrbit ? 120 : 300)));
     };
 
+    const syncOrbitLayout = () => {
+      systemWidth = Math.max(system.clientWidth, 1);
+      systemHeight = Math.max(system.clientHeight, 1);
+      orbitMovers.forEach((mover) => placeMover(mover, 0));
+      planetMovers.forEach((mover) => placeMover(mover, performance.now() / 1000));
+    };
+
+    const lightX = 34 - Math.sin((rotation.y * Math.PI) / 180) * 18;
+    const lightY = 28 + Math.sin((rotation.x * Math.PI) / 180) * 22;
+
+    system.style.setProperty("--space-x", `${rotation.x.toFixed(2)}deg`);
+    system.style.setProperty("--space-y", `${rotation.y.toFixed(2)}deg`);
+    system.style.setProperty("--space-z", `${rotation.z.toFixed(2)}deg`);
+    system.style.setProperty("--light-x", `${lightX.toFixed(1)}%`);
+    system.style.setProperty("--light-y", `${lightY.toFixed(1)}%`);
+    system.style.setProperty("--surface-roll", `${(rotation.z + rotation.y * 0.25).toFixed(1)}deg`);
+    syncOrbitLayout();
+
+    const resizeObserver = new ResizeObserver(syncOrbitLayout);
+    resizeObserver.observe(system);
+
     const tick = (now: number) => {
-      if (now - lastFrame >= frameInterval) {
-        lastFrame = now;
-        const time = now / 1000;
+      const time = now / 1000;
 
-        rotation.x += Math.sin(time * 0.42 + rotation.z) * 0.012;
-        rotation.y += Math.cos(time * 0.37) * 0.018;
-        rotation.z += Math.sin(time * 0.31) * 0.012;
-
-        const lightX = 34 - Math.sin((rotation.y * Math.PI) / 180) * 18;
-        const lightY = 28 + Math.sin((rotation.x * Math.PI) / 180) * 22;
-
-        system.style.setProperty("--space-x", `${rotation.x.toFixed(2)}deg`);
-        system.style.setProperty("--space-y", `${rotation.y.toFixed(2)}deg`);
-        system.style.setProperty("--space-z", `${rotation.z.toFixed(2)}deg`);
-        system.style.setProperty("--light-x", `${lightX.toFixed(1)}%`);
-        system.style.setProperty("--light-y", `${lightY.toFixed(1)}%`);
-        system.style.setProperty("--surface-roll", `${(rotation.z + rotation.y * 0.25).toFixed(1)}deg`);
-        movers.forEach((mover) => placeMover(mover, time));
-      }
+      planetMovers.forEach((mover) => placeMover(mover, time));
 
       frame = requestAnimationFrame(tick);
     };
@@ -565,6 +559,7 @@ function HomePage({
 
     return () => {
       cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
       generated.forEach((item) => item.remove());
     };
   }, []);
@@ -596,208 +591,14 @@ function HomePage({
           />
         ))}
       </div>
-
-      <span className="pg-entry-portal" aria-hidden="true">
-        {ENTRY_PARTICLES.map((particle) => (
-          <span
-            key={particle.id}
-            className="pg-entry-particle"
-            style={
-              {
-                "--particle-x": `${particle.x.toFixed(1)}px`,
-                "--particle-y": `${particle.y.toFixed(1)}px`,
-                "--particle-delay": `${particle.delay}ms`,
-                "--particle-size": `${particle.size.toFixed(1)}px`,
-                "--particle-opacity": particle.opacity.toFixed(2)
-              } as React.CSSProperties
-            }
-          />
-        ))}
-      </span>
     </section>
   );
-}
-
-function EntryParticleLoader() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context) return undefined;
-
-    const orbitPlanes = [
-      { x: -0.92, y: 0.18, z: 0.12 },
-      { x: -0.66, y: 0.92, z: -0.18 },
-      { x: -1.12, y: -0.44, z: 0.5 },
-      { x: -0.28, y: 1.24, z: 0.84 },
-      { x: -1.42, y: 0.54, z: -0.68 },
-      { x: -0.78, y: -1.08, z: -0.36 },
-      { x: -0.38, y: 0.22, z: 1.34 }
-    ];
-    const particles = Array.from({ length: 112 }, (_, index) => {
-      const seed = Math.sin(index * 12.9898) * 43758.5453;
-      const noise = seed - Math.floor(seed);
-      const planeIndex = index % orbitPlanes.length;
-
-      return {
-        angle: (index / 112) * Math.PI * 2,
-        alpha: 0.86 + (index % 6) * 0.035,
-        orbitCosX: Math.cos(orbitPlanes[planeIndex].x),
-        orbitCosY: Math.cos(orbitPlanes[planeIndex].y),
-        orbitCosZ: Math.cos(orbitPlanes[planeIndex].z),
-        orbitSinX: Math.sin(orbitPlanes[planeIndex].x),
-        orbitSinY: Math.sin(orbitPlanes[planeIndex].y),
-        orbitSinZ: Math.sin(orbitPlanes[planeIndex].z),
-        planeIndex,
-        phase: noise * Math.PI * 2,
-        radius: 32 + noise * 7.5,
-        size: 0.42 + (index % 4) * 0.085,
-        speed: 0.22 + (index % 13) * 0.008,
-        wobble: 1.8 + noise * 4.6
-      };
-    });
-    let animationFrame = 0;
-    let width = 0;
-    let height = 0;
-    let lastRender = 0;
-    let pixelRatio = 1;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
-      width = Math.max(1, rect.width);
-      height = Math.max(1, rect.height);
-      canvas.width = Math.floor(width * pixelRatio);
-      canvas.height = Math.floor(height * pixelRatio);
-      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    };
-
-    const render = (now: number) => {
-      if (now - lastRender < 1000 / 30) {
-        animationFrame = requestAnimationFrame(render);
-        return;
-      }
-
-      lastRender = now;
-      const time = now * 0.001;
-      const centerX = width / 2;
-      const centerY = height / 2;
-
-      context.clearRect(0, 0, width, height);
-
-      context.globalCompositeOperation = "lighter";
-      context.lineCap = "round";
-
-      const rotateAxis = (x: number, y: number, z: number, cosX: number, sinX: number, cosY: number, sinY: number, cosZ: number, sinZ: number) => {
-        const nextY = y * cosX - z * sinX;
-        const nextZ = y * sinX + z * cosX;
-        const nextX = x * cosY + nextZ * sinY;
-        const finalZ = -x * sinY + nextZ * cosY;
-        const finalX = nextX * cosZ - nextY * sinZ;
-        const finalY = nextX * sinZ + nextY * cosZ;
-
-        return { x: finalX, y: finalY, z: finalZ };
-      };
-
-      const projectPoint = (x: number, y: number, z: number) => {
-        const depth = 1 / (1 - z / 150);
-
-        return {
-          depth,
-          x: centerX + x * depth * 1.48,
-          y: centerY + y * depth * 1.48,
-          z
-        };
-      };
-
-      const globalRotationX = -0.18;
-      const globalRotationY = time * 0.28;
-      const globalRotationZ = 0.12;
-      const globalCosX = Math.cos(globalRotationX);
-      const globalSinX = Math.sin(globalRotationX);
-      const globalCosY = Math.cos(globalRotationY);
-      const globalSinY = Math.sin(globalRotationY);
-      const globalCosZ = Math.cos(globalRotationZ);
-      const globalSinZ = Math.sin(globalRotationZ);
-
-      particles.forEach((particle, index) => {
-        const wave = (Math.sin(time * 0.52 + particle.phase) + 1) / 2;
-        const angle = particle.angle + time * particle.speed * (particle.planeIndex % 2 === 0 ? 1 : -1);
-        const previousAngle = angle - 0.035;
-        const radius = particle.radius * (0.96 + wave * 0.07);
-        const local = rotateAxis(
-          Math.cos(angle) * radius,
-          Math.sin(angle * 2 + particle.phase) * particle.wobble,
-          Math.sin(angle) * radius,
-          particle.orbitCosX,
-          particle.orbitSinX,
-          particle.orbitCosY,
-          particle.orbitSinY,
-          particle.orbitCosZ,
-          particle.orbitSinZ
-        );
-        const previousLocal = rotateAxis(
-          Math.cos(previousAngle) * radius,
-          Math.sin(previousAngle * 2 + particle.phase) * particle.wobble,
-          Math.sin(previousAngle) * radius,
-          particle.orbitCosX,
-          particle.orbitSinX,
-          particle.orbitCosY,
-          particle.orbitSinY,
-          particle.orbitCosZ,
-          particle.orbitSinZ
-        );
-        const global = rotateAxis(local.x, local.y, local.z, globalCosX, globalSinX, globalCosY, globalSinY, globalCosZ, globalSinZ);
-        const previousGlobal = rotateAxis(previousLocal.x, previousLocal.y, previousLocal.z, globalCosX, globalSinX, globalCosY, globalSinY, globalCosZ, globalSinZ);
-        const projected = projectPoint(global.x, global.y, global.z);
-        const previous = projectPoint(previousGlobal.x, previousGlobal.y, previousGlobal.z);
-        const depthNormal = Math.max(0, Math.min(1, (projected.z + 46) / 92));
-        const size = Math.max(0.5, particle.size * projected.depth * (0.82 + depthNormal * 1.02));
-        const alpha = Math.min(1, particle.alpha * (0.98 + wave * 0.22) * (0.78 + depthNormal * 0.62));
-
-        if (index % 4 === 0) {
-          context.beginPath();
-          context.moveTo(previous.x, previous.y);
-          context.lineTo(projected.x, projected.y);
-          context.strokeStyle = `rgba(220, 238, 255, ${alpha * 0.38})`;
-          context.lineWidth = Math.max(0.2, size * 0.42);
-          context.stroke();
-        }
-
-        if (index % 3 === 0) {
-          const hazeSize = size * 2.1;
-          context.fillStyle = `rgba(184, 220, 255, ${alpha * 0.16})`;
-          context.fillRect(projected.x - hazeSize / 2, projected.y - hazeSize / 2, hazeSize, hazeSize);
-        }
-
-        context.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.08)})`;
-        context.fillRect(projected.x - size / 2, projected.y - size / 2, size, size);
-      });
-
-      context.globalCompositeOperation = "source-over";
-      animationFrame = requestAnimationFrame(render);
-    };
-
-    resize();
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(canvas);
-    animationFrame = requestAnimationFrame(render);
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="entry-loading__particle-canvas" aria-hidden="true" />;
 }
 
 function EntryLoadingOverlay({ planet }: { planet: PlanetContent }) {
   return (
     <div className="entry-loading" aria-live="polite" aria-label={`${planet.entryLabel}의 Personal Gravity로 진입하는 중`}>
       <div className="entry-loading__centerpiece">
-        <EntryParticleLoader />
         <div className="entry-loading__copy">
           <p className="entry-loading__eyebrow">PERSONAL GRAVITY</p>
           <strong>
@@ -1008,7 +809,7 @@ function DetailPage({
         viewZoom={hasTouchGravityInteraction ? detailView.zoom : 1}
         interactionPoint={hasTouchGravityInteraction ? interactionPoint : undefined}
         fixedCamera={hasTouchGravityInteraction}
-        introPaused={isTransitioning}
+        introPaused={false}
         onReady={onSceneReady}
       />
       {!isTransitioning && (

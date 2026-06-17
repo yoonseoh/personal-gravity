@@ -384,6 +384,7 @@ function BakedPointCloudModel({
   floatingLayer = false,
   floatingLayerIndex = 0,
   showConnectionLines = true,
+  visible = true,
   introPaused = false,
   onReady
 }: {
@@ -398,6 +399,7 @@ function BakedPointCloudModel({
   floatingLayer?: boolean;
   floatingLayerIndex?: number;
   showConnectionLines?: boolean;
+  visible?: boolean;
   introPaused?: boolean;
   onReady?: (pointDataUrl: string) => void;
 }) {
@@ -460,6 +462,7 @@ function BakedPointCloudModel({
       floatingLayer={floatingLayer}
       floatingLayerIndex={floatingLayerIndex}
       showConnectionLines={showConnectionLines}
+      visible={visible}
       introPaused={introPaused}
       onMountedReady={handleMountedReady}
     />
@@ -478,6 +481,7 @@ function PointCloudPoints({
   floatingLayer = false,
   floatingLayerIndex = 0,
   showConnectionLines = true,
+  visible = true,
   introPaused = false,
   onMountedReady
 }: {
@@ -492,6 +496,7 @@ function PointCloudPoints({
   floatingLayer?: boolean;
   floatingLayerIndex?: number;
   showConnectionLines?: boolean;
+  visible?: boolean;
   introPaused?: boolean;
   onMountedReady?: () => void;
 }) {
@@ -868,6 +873,7 @@ function PointCloudPoints({
       position={displayPosition}
       rotation={initialRotation}
       scale={[cloud.scale * settings.spread * smoothedViewTransformRef.current.zoom, cloud.scale * smoothedViewTransformRef.current.zoom, cloud.scale * settings.spread * smoothedViewTransformRef.current.zoom]}
+      visible={visible}
     >
       <group ref={innerRef} position={[-center.x, -center.y, -center.z]}>
         <points geometry={cloud.geometry}>
@@ -921,16 +927,22 @@ export function PointCloudModel({
     [floatingUrls, pointDataUrl]
   );
   const bakedPointUrlsKey = bakedPointUrls.join("|");
+  const [allLayersReady, setAllLayersReady] = useState(false);
   const readyUrlsRef = useRef(new Set<string>());
+  const hasReportedReadyRef = useRef(false);
 
   useEffect(() => {
     readyUrlsRef.current.clear();
+    hasReportedReadyRef.current = false;
+    setAllLayersReady(false);
   }, [bakedPointUrlsKey]);
 
   const handleBakedPointReady = useCallback((readyPointDataUrl: string) => {
     if (bakedPointUrls.length === 0) return;
     readyUrlsRef.current.add(readyPointDataUrl);
-    if (readyUrlsRef.current.size >= bakedPointUrls.length) {
+    if (!hasReportedReadyRef.current && readyUrlsRef.current.size >= bakedPointUrls.length) {
+      hasReportedReadyRef.current = true;
+      setAllLayersReady(true);
       onReady?.();
     }
   }, [bakedPointUrls.length, onReady]);
@@ -948,7 +960,8 @@ export function PointCloudModel({
           viewZoom={viewZoom}
           interactionPoint={interactionPoint}
           showConnectionLines={false}
-          introPaused={introPaused}
+          visible={allLayersReady}
+          introPaused={introPaused || !allLayersReady}
           onReady={handleBakedPointReady}
         />
         {floatingUrls.map((floatingUrl, index) => (
@@ -965,7 +978,8 @@ export function PointCloudModel({
             floatingLayer
             floatingLayerIndex={index}
             showConnectionLines
-            introPaused={introPaused}
+            visible={allLayersReady}
+            introPaused={introPaused || !allLayersReady}
             onReady={handleBakedPointReady}
           />
         ))}
@@ -984,7 +998,8 @@ export function PointCloudModel({
       viewZoom={viewZoom}
       interactionPoint={interactionPoint}
       showConnectionLines={false}
-      introPaused={introPaused}
+      visible={allLayersReady}
+      introPaused={introPaused || !allLayersReady}
       onReady={handleBakedPointReady}
     />
   ) : null;

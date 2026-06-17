@@ -121,9 +121,9 @@ main {
 }
 
 .pg-scene.is-entering {
-  animation: pg-home-reveal-through 3800ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
+  animation: pg-fade-away 520ms ease forwards;
   pointer-events: none;
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 @media (min-width: 1500px) and (max-resolution: 1.5dppx) {
@@ -234,20 +234,20 @@ main {
 }
 
 .pg-scene.is-entering .pg-system {
-  animation: pg-system-dive 3800ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
+  animation: pg-fade-away 420ms ease forwards;
   transition: none;
-  will-change: transform, opacity, filter;
+  will-change: opacity;
 }
 
 .pg-scene.is-entering .pg-intro {
-  animation: pg-fade-away 1450ms ease forwards;
+  animation: pg-fade-away 420ms ease forwards;
 }
 
 .pg-scene.is-entering .pg-planet:not(:hover):not(:focus-visible):not(:active),
 .pg-scene.is-entering .pg-orbital-dot,
 .pg-scene.is-entering .pg-orbit-mark,
 .pg-scene.is-entering .pg-sun {
-  animation: pg-fade-away 2500ms ease forwards;
+  animation: pg-fade-away 420ms ease forwards;
 }
 
 .pg-orbit {
@@ -277,8 +277,8 @@ main {
   --planet-glow: rgba(148, 210, 255, 0.12);
   --planet-glow-active: rgba(148, 210, 255, 0.42);
   position: absolute;
-  left: var(--x);
-  top: var(--y);
+  left: 50%;
+  top: 50%;
   width: var(--size);
   aspect-ratio: 1;
   overflow: hidden;
@@ -301,23 +301,23 @@ main {
     cover,
     100% 100%;
   background-blend-mode: screen, multiply, normal, normal;
-  box-shadow:
-    0 0 16px rgba(255, 255, 255, 0.18),
-    0 0 34px var(--planet-glow);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
   color: inherit;
   cursor: pointer;
-  filter: blur(var(--depth-blur, 0px)) brightness(var(--depth-light, 1));
   font: inherit;
   opacity: var(--depth-opacity, 1);
   transform:
-    translate(calc(-50% + var(--pull-x, 0px)), calc(-50% + var(--pull-y, 0px)))
-    translateZ(var(--depth-z, 0px))
+    translate3d(
+      calc(var(--orbit-x, 0px) + var(--pull-x, 0px)),
+      calc(var(--orbit-y, 0px) + var(--pull-y, 0px)),
+      var(--depth-z, 0px)
+    )
+    translate(-50%, -50%)
     scale(var(--depth-scale, 1));
   transition:
-    transform 180ms ease,
     box-shadow 180ms ease,
     outline-color 180ms ease;
-  will-change: left, top, transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 .pg-planet::before {
@@ -334,13 +334,7 @@ main {
 }
 
 .pg-planet::after {
-  position: absolute;
-  inset: -18%;
-  border-radius: 50%;
-  background: radial-gradient(circle at var(--light-x, 32%) var(--light-y, 24%), rgba(255, 255, 255, 0.28), transparent 38%);
-  content: "";
-  mix-blend-mode: screen;
-  pointer-events: none;
+  display: none;
 }
 
 .pg-planet:hover,
@@ -349,11 +343,15 @@ main {
   outline: 1px solid rgba(255, 255, 255, 0.96);
   outline-offset: 7px;
   box-shadow:
-    0 0 24px rgba(255, 255, 255, 0.34),
-    0 0 48px rgba(255, 255, 255, 0.14);
+    0 0 18px rgba(255, 255, 255, 0.28),
+    0 0 30px rgba(255, 255, 255, 0.1);
   transform:
-    translate(calc(-50% + var(--pull-x, 0px)), calc(-50% + var(--pull-y, 0px)))
-    translateZ(var(--depth-z, 0px))
+    translate3d(
+      calc(var(--orbit-x, 0px) + var(--pull-x, 0px)),
+      calc(var(--orbit-y, 0px) + var(--pull-y, 0px)),
+      var(--depth-z, 0px)
+    )
+    translate(-50%, -50%)
     scale(calc(var(--depth-scale, 1) * 1.06));
 }
 
@@ -364,129 +362,6 @@ main {
   box-shadow:
     0 0 28px rgba(224, 238, 255, 0.46),
     0 0 72px rgba(111, 189, 255, 0.18);
-}
-
-.pg-entry-portal {
-  position: fixed;
-  z-index: 900;
-  left: var(--portal-x);
-  top: var(--portal-y);
-  width: 1px;
-  aspect-ratio: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  transform-style: preserve-3d;
-}
-
-.pg-scene.is-entering .pg-entry-portal {
-  opacity: 1;
-}
-
-.pg-entry-particle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: var(--particle-size);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: rgba(226, 243, 255, var(--particle-opacity));
-  opacity: 0;
-  transform:
-    translate(-50%, -50%)
-    translate(var(--particle-x), var(--particle-y))
-    scale(0.15);
-  will-change: transform, opacity;
-}
-
-.pg-scene.is-entering .pg-entry-particle {
-  animation: pg-entry-particle 3200ms cubic-bezier(0.22, 0.62, 0.16, 1) forwards;
-  animation-delay: var(--particle-delay);
-}
-
-@keyframes pg-system-dive {
-  0% {
-    filter: blur(0);
-    opacity: 1;
-    transform:
-      translate(calc(-50% + var(--pan-x, 0px)), calc(-50% + var(--pan-y, 0px)))
-      scale(var(--zoom, 1));
-  }
-
-  66% {
-    filter: blur(0.1px) brightness(1.02);
-    opacity: 1;
-    transform:
-      translate(calc(-50% + var(--pan-x, 0px)), calc(-50% + var(--pan-y, 0px)))
-      translate(calc(var(--enter-shift-x) * 0.34), calc(var(--enter-shift-y) * 0.34))
-      scale(calc(var(--zoom, 1) * 1.72));
-  }
-
-  100% {
-    filter: blur(1.4px) brightness(0.42);
-    opacity: 0.04;
-    transform:
-      translate(calc(-50% + var(--pan-x, 0px)), calc(-50% + var(--pan-y, 0px)))
-      translate(var(--enter-shift-x), var(--enter-shift-y))
-      scale(calc(var(--zoom, 1) * 6.8));
-  }
-}
-
-@keyframes pg-entry-particle {
-  0% {
-    opacity: 0;
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--particle-x) * 3.4), calc(var(--particle-y) * 3.4))
-      scale(0.48);
-  }
-
-  28% {
-    opacity: var(--particle-opacity);
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--particle-x) * 1.18), calc(var(--particle-y) * 1.18))
-      scale(0.9);
-  }
-
-  58% {
-    opacity: calc(var(--particle-opacity) * 1.1);
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--particle-x) * 0.13), calc(var(--particle-y) * 0.13))
-      scale(0.42);
-  }
-
-  74% {
-    opacity: calc(var(--particle-opacity) * 0.9);
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--particle-x) * -0.18), calc(var(--particle-y) * -0.18))
-      scale(1.2);
-  }
-
-  100% {
-    opacity: 0;
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--particle-x) * -3.6), calc(var(--particle-y) * -3.6))
-      scale(2.9);
-  }
-}
-
-@keyframes pg-home-reveal-through {
-  0%,
-  42% {
-    opacity: 1;
-  }
-
-  72% {
-    opacity: 0.72;
-  }
-
-  100% {
-    opacity: 0;
-  }
 }
 
 @keyframes pg-fade-away {
@@ -546,8 +421,8 @@ main {
 
 .pg-orbital-dot {
   position: absolute;
-  left: var(--x);
-  top: var(--y);
+  left: 50%;
+  top: 50%;
   width: var(--size);
   aspect-ratio: 1;
   border-radius: 50%;
@@ -557,29 +432,31 @@ main {
   opacity: var(--alpha);
   pointer-events: none;
   transform:
-    translate(calc(-50% + var(--pull-x, 0px)), calc(-50% + var(--pull-y, 0px)))
-    translateZ(var(--depth-z, 0px))
+    translate3d(
+      calc(var(--orbit-x, 0px) + var(--pull-x, 0px)),
+      calc(var(--orbit-y, 0px) + var(--pull-y, 0px)),
+      var(--depth-z, 0px)
+    )
+    translate(-50%, -50%)
     scale(var(--depth-scale, 1));
-  will-change: left, top, transform, opacity, filter;
+  will-change: transform, opacity, filter;
 }
 
 .pg-orbit-mark {
   position: absolute;
-  left: var(--x);
-  top: var(--y);
+  left: 50%;
+  top: 50%;
   width: var(--size);
   height: calc(var(--size) * 0.72);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 0 5px rgba(150, 210, 255, 0.24);
   opacity: var(--depth-opacity, 0.5);
   pointer-events: none;
   transform:
+    translate3d(var(--orbit-x, 0px), var(--orbit-y, 0px), var(--depth-z, 0px))
     translate(-50%, -50%)
-    translateZ(var(--depth-z, 0px))
     rotate(var(--mark-angle, 0deg))
     scale(var(--depth-scale, 1));
-  will-change: left, top, transform, opacity;
 }
 
 .home-frame {
@@ -950,7 +827,7 @@ main {
     radial-gradient(circle at center, rgba(255, 255, 255, 0.035), transparent 18%),
     #000;
   pointer-events: none;
-  animation: entry-loading-arrive 5800ms cubic-bezier(0.22, 0.62, 0.16, 1) both;
+  animation: entry-loading-arrive 6500ms cubic-bezier(0.22, 0.62, 0.16, 1) both;
 }
 
 .entry-loading > * {
@@ -999,15 +876,6 @@ main {
   animation: entry-loading-dots 1.75s steps(1, end) infinite;
 }
 
-.entry-loading__particle-canvas {
-  position: relative;
-  width: min(44vw, 260px);
-  height: 148px;
-  opacity: 1;
-  pointer-events: none;
-  mix-blend-mode: screen;
-}
-
 @keyframes entry-loading-dots {
   0%,
   32% {
@@ -1027,27 +895,19 @@ main {
 
 @keyframes entry-loading-arrive {
   0% {
-    filter: blur(7px);
     opacity: 0;
-    transform: translateY(8px) scale(1.02);
   }
 
   18% {
-    filter: blur(0);
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 
   98% {
-    filter: blur(0);
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 
   100% {
-    filter: blur(4px);
     opacity: 0;
-    transform: translateY(-8px) scale(0.98);
   }
 }
 
