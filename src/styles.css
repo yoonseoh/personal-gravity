@@ -203,15 +203,6 @@ main {
   white-space: nowrap;
 }
 
-.pg-guide {
-  margin: calc(8px * var(--home-type-scale)) 0 0;
-  color: rgba(255, 255, 255, 0.48);
-  font-size: calc(12px * var(--home-type-scale));
-  font-weight: 500;
-  line-height: 1.55;
-  white-space: nowrap;
-}
-
 .pg-system {
   position: absolute;
   top: 57%;
@@ -236,6 +227,10 @@ main {
 }
 
 .pg-scene.is-entering .pg-intro {
+  animation: pg-fade-away 420ms ease forwards;
+}
+
+.pg-scene.is-entering .home-touch-guide {
   animation: pg-fade-away 420ms ease forwards;
 }
 
@@ -358,6 +353,43 @@ main {
   box-shadow:
     0 0 28px rgba(224, 238, 255, 0.46),
     0 0 72px rgba(111, 189, 255, 0.18);
+}
+
+.home-touch-guide {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: clamp(38px, 7.6vh, 92px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(86vw, 420px);
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.home-touch-guide img {
+  display: block;
+  width: clamp(28px, 2.6vw, 38px);
+  height: auto;
+  opacity: 0.88;
+  filter:
+    drop-shadow(0 0 12px rgba(255, 255, 255, 0.24))
+    drop-shadow(0 0 22px rgba(0, 0, 0, 0.62));
+  transform-origin: center;
+  animation: touch-instruction-icon 1900ms ease-in-out infinite;
+}
+
+.home-touch-guide p {
+  margin: 0;
+  font-size: calc(13px * var(--home-type-scale));
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.82);
+  white-space: nowrap;
 }
 
 @keyframes pg-fade-away {

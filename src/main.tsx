@@ -88,7 +88,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "plant",
     pointDataUrl: "models/lg-model-plant2-base-points",
     floatingPointDataUrl: "models/lg-model-plant2-appliances-points",
-    entryLabel: "액티브 시니어 부부",
+    entryLabel: "식물을 가꾸는 시니어 부부",
     title: "식물을 가꾸는 시니어 부부의\nPersonal Gravity",
     description: [
       "가사는 덜고, 건강한 일상은 더 오래",
@@ -105,7 +105,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "party",
     pointDataUrl: "models/lg-model-party-base-points",
     floatingPointDataUrl: "models/lg-model-party-appliances-points",
-    entryLabel: "홈파티 부부",
+    entryLabel: "홈파티를 즐기는 부부",
     title: "홈파티를 즐기는 부부의\nPersonal Gravity",
     description: [
       "보관부터 조리까지, 함께 즐기는 홈파티 키친",
@@ -122,7 +122,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "dress",
     pointDataUrl: "models/lg-model-dressroom2-base-points",
     floatingPointDataUrl: "models/lg-model-dressroom2-appliances-points",
-    entryLabel: "트렌드세터",
+    entryLabel: "패션 러버",
     title: "패션 러버의\nPersonal Gravity",
     description: [
       "옷과 신발을 아끼는 나만의 드레스룸",
@@ -142,7 +142,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
       "models/lg-model-bathroom2-appliance-2-points",
       "models/lg-model-bathroom2-appliance-3-points"
     ],
-    entryLabel: "홈 스파 매니아",
+    entryLabel: "홈스파 매니아",
     title: "홈스파 매니아의\nPersonal Gravity",
     description: [
       "습기와 세탁 걱정 없는 나만의 홈 스파",
@@ -159,7 +159,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "cats",
     pointDataUrl: "models/lg-model-cat2-base-points",
     floatingPointDataUrl: "models/lg-model-cat2-appliances-points",
-    entryLabel: "반려묘 집사",
+    entryLabel: "고양이 집사",
     title: "고양이 집사의\nPersonal Gravity",
     description: [
       "고양이는 자유롭게, 털 걱정은 가볍게",
@@ -175,7 +175,7 @@ const PLANETS: Record<PlanetKey, PlanetContent> = {
     id: "20s",
     pointDataUrl: "models/lg-model-20s2-base-points",
     floatingPointDataUrl: "models/lg-model-20s2-appliances-points",
-    entryLabel: "영화·게임 러버",
+    entryLabel: "자취 만렙 대학생",
     title: "자취 만렙 대학생의\nPersonal Gravity",
     description: [
       "책상에서 침대까지, 화면이 따라오는 원룸 라이프",
@@ -569,7 +569,6 @@ function HomePage({
       <header className="pg-intro">
         <PersonalGravityBrand />
         <p className="pg-subtitle">당신이 중심이 되는 세상</p>
-        <p className="pg-guide">행성을 터치해보세요</p>
       </header>
 
       <div className="pg-system" ref={systemRef} onClick={startEnter}>
@@ -590,6 +589,11 @@ function HomePage({
             aria-label={button.label}
           />
         ))}
+      </div>
+
+      <div className="home-touch-guide" aria-hidden="true">
+        <img src={assetUrl("images/ui/icon_touch.svg")} alt="" />
+        <p>행성을 터치해보세요</p>
       </div>
     </section>
   );
@@ -615,7 +619,7 @@ function TouchInstructionOverlay() {
   return (
     <div className="touch-instruction" aria-live="polite">
       <img src={assetUrl("images/ui/icon_touch.svg")} alt="" aria-hidden="true" />
-      <p>화면을 꾹 누르거나, 드래그해보세요</p>
+      <p>화면을 꾹 누른채로 천천히 움직여보세요.</p>
     </div>
   );
 }
